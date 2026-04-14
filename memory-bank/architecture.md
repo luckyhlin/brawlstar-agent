@@ -1,0 +1,88 @@
+# Architecture
+
+## Directory Layout
+
+```
+/media/lin/disk2/brawlstar-agent/
+├── memory-bank/                # Cross-session memory (6 files)
+├── .cursor/rules/              # memory-bank.mdc (auto-read/update)
+├── pyproject.toml              # uv project (Python 3.12)
+├── src/brawlstar_agent/        # Python package
+│   ├── api_client.py           # Brawl Stars API wrapper (rate-limited, auth, retry)
+│   ├── db.py                   # SQLite storage (schema, insert/dedup, queries)
+│   ├── collector.py            # Data collection orchestrator (seed → fetch → snowball)
+│   ├── analytics.py            # Win rate queries (brawler, combo, matchup, synergy)
+│   ├── capture.py              # Frame extraction, video reading
+│   ├── crop.py                 # Auto-detect + batch crop game region
+│   ├── perception.py           # Color analysis, template matching, MSER
+│   ├── ui_regions.py           # Normalized UI regions, mode detection, overlays
+│   ├── ocr.py                  # Tesseract OCR for timer/score/names
+│   └── character_match.py      # Portrait matching baseline (weak)
+├── scripts/
+│   ├── download-gameplay.sh    # Single YouTube download
+│   ├── download-batch.sh       # Batch download with dedup
+│   ├── extract-frames.sh       # Video → frames (ffmpeg)
+│   ├── extract-batch.sh        # Extract all clips
+│   ├── auto-label-and-review.py # Auto-classify + generate HTML review pages
+│   ├── generate-review-hub.py  # Browser-based review hub (local server)
+│   ├── review-all.sh           # Terminal-guided sequential review
+│   ├── crop-reviewed-frames.py # Export gameplay frames from manifests
+│   ├── run-perception.py       # Full perception pipeline runner
+│   ├── fetch-character-refs.py # Download brawler portraits from BrawlAPI
+│   ├── collect-battles.py      # CLI: collect battle data from API → SQLite
+│   └── analyze-battles.py      # CLI: run analytics queries on collected data
+├── capture/
+│   ├── clips/                  # Downloaded YouTube videos
+│   ├── frames/                 # Extracted frames + review manifests per clip
+│   └── download_history.txt    # yt-dlp dedup archive
+├── datasets/
+│   ├── gameplay_cropped/       # 308 reviewed gameplay frames (21 clip dirs)
+│   ├── character_refs/         # 200 brawler portraits + brawlers_index.json
+│   └── perception/             # Pipeline outputs (calibration, ocr, summary)
+├── data/
+│   └── brawlstars.db           # SQLite: battles, players, brawlers (git-ignored)
+├── emulator/                   # Android SDK, AVD, Genymotion (legacy)
+├── notebooks/                  # Jupyter notebooks
+├── models/                     # Future: trained models
+├── logs/                       # Pipeline logs
+└── docs/
+    ├── data-sources.md         # Video/image data sources guide
+    ├── brawlstars-api.md       # Full API reference (7 endpoints)
+    └── api-examples/           # Live API responses (git-ignored)
+```
+
+## Data Pipeline
+
+```
+YouTube → yt-dlp → capture/clips/*.mp4
+  → ffmpeg 2fps → capture/frames/<clip>/frame_*.jpg
+  → auto-label-and-review.py → review_manifest.json + review.html
+  → user reviews in browser hub (generate-review-hub.py)
+  → crop-reviewed-frames.py → datasets/gameplay_cropped/<clip>/
+  → run-perception.py → datasets/perception/ (calibration, ocr, characters)
+```
+
+## API Battle Analytics Pipeline
+
+```
+Rankings API → seed 200 global player tags → players table
+  → for each tag: GET /players/{tag}/battlelog
+  → normalize: 1 battle → battles row + 6 battle_players rows
+  → snowball: discover new tags from opponents/teammates → players table
+  → dedup on (battleTime + sorted tags)
+  → analytics queries: brawler win rates, combo win rates, matchup matrix, synergy matrix
+```
+
+DB: `data/brawlstars.db` (SQLite, WAL mode)
+Tables: brawlers, players, battles, battle_players, collection_log
+
+## Perception Pipeline (per frame)
+
+```
+Frame
+ ├─ detect_game_mode() → showdown / brawl_ball / gem_grab / heist
+ ├─ crop timer region → tesseract → "2:02" (works on brawl_ball/gem_grab)
+ ├─ crop top-left region → tesseract → "100%" or "7"
+ ├─ crop game area → detect_brawler_blobs() → candidate bboxes
+ └─ per blob → compare color histogram vs 100 portraits → ranked guesses (WEAK)
+```

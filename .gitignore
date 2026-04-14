@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+
+# Emulator & SDK (30GB, dead end — DEC-003/004)
+emulator/
+
+# Raw & processed media (videos, frames, screenshots — 3.3GB)
+capture/
+
+# Datasets (cropped frames, character refs, perception output — 104MB)
+datasets/
+
+# SQLite database (collected API data)
+data/
+
+# Model weights & checkpoints
+models/*.pt
+models/*.pth
+models/*.onnx
+models/*.bin
+models/*.h5
+*.pkl
+*.npy
+
+# Logs
+logs/
+
+# Editor / tool local settings
+.claude/
+.codex
+.cursor/mcp.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# API example responses (large, regenerable)
+docs/api-examples/
+
+# env file
+*.env
