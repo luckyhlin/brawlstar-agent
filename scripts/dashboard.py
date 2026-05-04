@@ -18,12 +18,19 @@ import base64
 import json
 import sys
 import webbrowser
+from datetime import datetime, timezone
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from brawlstar_agent.analytics import BattleAnalytics
+from brawlstar_agent.dashboard_data import (
+    CACHE_PATH,
+    collect_all_data,
+    read_cache,
+    write_cache,
+)
 from brawlstar_agent.db import DEFAULT_DB_PATH
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -77,179 +84,6 @@ def load_brawler_name_map() -> dict[str, int]:
         pass
 
     return name_to_id
-
-
-def collect_all_data(db_path: str) -> dict:
-    """Run all analytics queries and package for the frontend."""
-    from brawlstar_agent.analytics import TROPHY_TIERS
-
-    a = BattleAnalytics(db_path)
-    summary = a.summary()
-    modes = [m for m in summary["mode_distribution"].keys()
-             if m not in ("soloShowdown", "duoShowdown")]
-
-    brawler_rates = {}
-    brawler_rates["all"] = a.brawler_win_rates(min_sample=5, limit=999)
-    for mode in modes:
-        rows = a.brawler_win_rates(mode=mode, min_sample=3, limit=999)
-        if rows:
-            brawler_rates[mode] = rows
-
-    # Ladder (battle_type=ranked) -- trophy-based play
-    brawler_rates["ladder_all"] = a.brawler_win_rates(battle_type="ranked", min_sample=5, limit=999)
-    # Ladder trophy tier breakdown
-    tier_data = a.brawler_win_rates_by_tier(min_sample=10, limit=999)
-    for tier_name, rows in tier_data.items():
-        brawler_rates[f"ladder_{tier_name}"] = rows
-
-    # Competitive ranked (battle_type=soloRanked)
-    brawler_rates["competitive_all"] = a.brawler_win_rates(battle_type="soloRanked", min_sample=5, limit=999)
-    # Competitive ranked tier breakdown (Bronze-Masters)
-    from brawlstar_agent.models import RANKED_TIERS
-    for tier_name, lo, hi in RANKED_TIERS:
-        rows = a.brawler_win_rates(
-            battle_type="soloRanked", ranked_tier=tier_name,
-            min_sample=3, limit=999,
-        )
-        if rows:
-            brawler_rates[f"competitive_{tier_name}"] = rows
-
-    combos = {}
-    combos["all"] = a.combo_win_rates(min_sample=3, limit=50)
-    for mode in modes:
-        rows = a.combo_win_rates(mode=mode, min_sample=2, limit=50)
-        if rows:
-            combos[mode] = rows
-
-    matchups = a.matchup_win_rates(min_sample=50, limit=300)
-    synergies = a.synergy_win_rates(min_sample=50, limit=300)
-
-    trophy_tiers = [{"name": name, "lo": lo, "hi": hi} for name, lo, hi in TROPHY_TIERS]
-
-    # Statistical model scores
-    brawler_scores = a.brawler_scores()
-
-    # Personal data for the main account
-    import os
-    from dotenv import load_dotenv
-    load_dotenv(PROJECT_ROOT / "api.env")
-    my_tag = os.getenv("MAJOR_ACCOUNT_TAG", "")
-    my_data = _collect_personal_data(a._conn, my_tag) if my_tag else None
-
-    a.close()
-
-    from brawlstar_agent.models import RANKED_TIERS
-    ranked_tiers = [{"name": n, "lo": lo, "hi": hi} for n, lo, hi in RANKED_TIERS]
-
-    return {
-        "summary": summary,
-        "modes": modes,
-        "trophy_tiers": trophy_tiers,
-        "ranked_tiers": ranked_tiers,
-        "brawler_rates": brawler_rates,
-        "brawler_scores": brawler_scores,
-        "combos": combos,
-        "matchups": matchups,
-        "synergies": synergies,
-        "my_data": my_data,
-    }
-
-
-def _collect_personal_data(conn, tag: str) -> dict | None:
-    """Query all tracked data for the main account."""
-    player = conn.execute(
-        "SELECT tag, name, trophies, highest_trophies, exp_level, club_name FROM players WHERE tag = ?",
-        (tag,),
-    ).fetchone()
-    if not player:
-        return None
-
-    # Full battle log with teammates and opponents
-    battles_raw = conn.execute("""
-        SELECT
-            b.battle_id, b.battle_time_iso, b.mode, b.map, b.battle_type,
-            b.duration, b.is_showdown, b.star_player_tag,
-            bp.brawler_name, bp.brawler_trophies, bp.result,
-            bp.trophy_change, bp.is_star_player, bp.team_index
-        FROM battle_players bp
-        JOIN battles b ON bp.battle_id = b.battle_id
-        WHERE bp.player_tag = ?
-        ORDER BY b.battle_time_iso DESC
-    """, (tag,)).fetchall()
-
-    # Build enriched battle entries with teammates/opponents
-    battle_ids = [r["battle_id"] for r in battles_raw]
-    battle_log = []
-    for br in battles_raw:
-        bid = br["battle_id"]
-        my_team_idx = br["team_index"]
-
-        teammates = conn.execute("""
-            SELECT player_tag, brawler_name, brawler_trophies, is_star_player
-            FROM battle_players WHERE battle_id = ? AND team_index = ? AND player_tag != ?
-        """, (bid, my_team_idx, tag)).fetchall()
-
-        opponents = conn.execute("""
-            SELECT player_tag, brawler_name, brawler_trophies, is_star_player
-            FROM battle_players WHERE battle_id = ? AND team_index != ?
-        """, (bid, my_team_idx)).fetchall()
-
-        battle_log.append({
-            "time": br["battle_time_iso"],
-            "mode": br["mode"],
-            "map": br["map"],
-            "type": br["battle_type"],
-            "duration": br["duration"],
-            "brawler": br["brawler_name"],
-            "trophies": br["brawler_trophies"],
-            "result": br["result"],
-            "trophy_change": br["trophy_change"],
-            "star_player": bool(br["is_star_player"]),
-            "teammates": [{"brawler": t["brawler_name"], "trophies": t["brawler_trophies"]} for t in teammates],
-            "opponents": [{"brawler": o["brawler_name"], "trophies": o["brawler_trophies"]} for o in opponents],
-        })
-
-    # Per-brawler stats
-    brawler_stats = conn.execute("""
-        SELECT
-            bp.brawler_name,
-            COUNT(*) as total,
-            SUM(CASE WHEN bp.result = 'victory' THEN 1 ELSE 0 END) as wins,
-            SUM(CASE WHEN bp.is_star_player THEN 1 ELSE 0 END) as star_count,
-            ROUND(100.0 * SUM(CASE WHEN bp.result = 'victory' THEN 1 ELSE 0 END) / COUNT(*), 1) as win_rate
-        FROM battle_players bp
-        JOIN battles b ON bp.battle_id = b.battle_id
-        WHERE bp.player_tag = ? AND bp.result IN ('victory', 'defeat')
-        GROUP BY bp.brawler_name
-        ORDER BY total DESC
-    """, (tag,)).fetchall()
-
-    # Per-mode stats
-    mode_stats = conn.execute("""
-        SELECT
-            b.mode,
-            COUNT(*) as total,
-            SUM(CASE WHEN bp.result = 'victory' THEN 1 ELSE 0 END) as wins,
-            ROUND(100.0 * SUM(CASE WHEN bp.result = 'victory' THEN 1 ELSE 0 END) / COUNT(*), 1) as win_rate
-        FROM battle_players bp
-        JOIN battles b ON bp.battle_id = b.battle_id
-        WHERE bp.player_tag = ? AND bp.result IN ('victory', 'defeat')
-        GROUP BY b.mode
-        ORDER BY total DESC
-    """, (tag,)).fetchall()
-
-    return {
-        "tag": tag,
-        "name": player["name"],
-        "trophies": player["trophies"],
-        "highest_trophies": player["highest_trophies"],
-        "exp_level": player["exp_level"],
-        "club": player["club_name"],
-        "battle_count": len(battle_log),
-        "battle_log": battle_log,
-        "brawler_stats": [dict(r) for r in brawler_stats],
-        "mode_stats": [dict(r) for r in mode_stats],
-    }
 
 
 def generate_html(data: dict, portraits: dict[int, str], name_to_id: dict[str, int]) -> str:
@@ -495,9 +329,45 @@ function prettyMode(m) {{
 // Stats bar
 const s = DATA.summary;
 const btd = s.battle_type_distribution || {{}};
-document.getElementById('subtitle').textContent =
+
+function fmtAge(iso) {{
+    if (!iso) return null;
+    const t = new Date(iso);
+    if (isNaN(t)) return null;
+    const secs = (Date.now() - t.getTime()) / 1000;
+    if (secs < 60) return Math.floor(secs) + 's ago';
+    if (secs < 3600) return Math.floor(secs / 60) + ' min ago';
+    if (secs < 86400) return (secs / 3600).toFixed(1) + ' h ago';
+    return (secs / 86400).toFixed(1) + ' d ago';
+}}
+
+const sub = document.getElementById('subtitle');
+sub.textContent =
     `${{s.total_battles.toLocaleString()}} battles from ${{s.total_players.toLocaleString()}} players` +
     ` (${{s.earliest_battle?.slice(0,10) || '?'}} to ${{s.latest_battle?.slice(0,10) || '?'}})`;
+
+const meta = DATA._cache_meta;
+if (meta && meta.computed_at) {{
+    const ageStr = fmtAge(meta.computed_at);
+    const ageSecs = (Date.now() - new Date(meta.computed_at).getTime()) / 1000;
+    let color = 'var(--text-dim)';
+    if (ageSecs > 86400) color = 'var(--red)';
+    else if (ageSecs > 21600) color = 'var(--orange)';
+    let computeNote = '';
+    if (meta.computed_in_seconds != null) {{
+        const cs = meta.computed_in_seconds;
+        let computeColor = 'var(--text-dim)';
+        if (cs > 2700) computeColor = 'var(--red)';
+        else if (cs > 1800) computeColor = 'var(--orange)';
+        const t = cs > 60 ? `${{(cs / 60).toFixed(1)}} min` : `${{cs.toFixed(1)}}s`;
+        computeNote = ` · <span style="color:${{computeColor}}">compute took ${{t}}</span>`;
+    }}
+    sub.innerHTML = sub.textContent +
+        `<br><span style="color:${{color}}">analytics cached ${{ageStr}}</span>${{computeNote}}`;
+}} else {{
+    sub.innerHTML = sub.textContent +
+        `<br><span style="color:var(--orange)">computed inline (no cache) — run scripts/precompute-analytics.py to enable caching</span>`;
+}}
 const statsHtml = [
     ['Battles', s.total_battles],
     ['Ranked', btd['ranked'] || 0],
@@ -879,15 +749,66 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         pass
 
 
+def _format_cache_age(computed_at_iso: str) -> str:
+    """Render '23 minutes ago' / '4 hours ago' for the cache header."""
+    try:
+        computed = datetime.fromisoformat(computed_at_iso)
+    except (TypeError, ValueError):
+        return "unknown age"
+    now = datetime.now(timezone.utc)
+    if computed.tzinfo is None:
+        computed = computed.replace(tzinfo=timezone.utc)
+    delta = now - computed
+    secs = delta.total_seconds()
+    if secs < 60:
+        return f"{int(secs)}s ago"
+    if secs < 3600:
+        return f"{int(secs / 60)} min ago"
+    if secs < 86400:
+        return f"{secs / 3600:.1f} h ago"
+    return f"{secs / 86400:.1f} d ago"
+
+
 def main():
     parser = argparse.ArgumentParser(description="Brawl Stars analytics dashboard")
     parser.add_argument("--db", default=str(DEFAULT_DB_PATH))
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--no-open", action="store_true", help="Don't auto-open browser")
+    parser.add_argument(
+        "--recompute",
+        action="store_true",
+        help="Force recompute, ignoring cache (also writes the cache).",
+    )
+    parser.add_argument(
+        "--no-cache",
+        action="store_true",
+        help="Skip cache entirely; compute inline without writing.",
+    )
     args = parser.parse_args()
 
-    print("Loading analytics data...")
-    data = collect_all_data(args.db)
+    cache_meta: dict | None = None
+    if args.recompute:
+        print("Forcing recompute (--recompute), this may take a while...")
+        cache = write_cache(args.db)
+        data = cache["data"]
+        cache_meta = {k: v for k, v in cache.items() if k != "data"}
+    elif args.no_cache:
+        print("Computing analytics inline (--no-cache)...")
+        data = collect_all_data(args.db)
+    else:
+        cache = read_cache()
+        if cache and "data" in cache:
+            age = _format_cache_age(cache.get("computed_at", ""))
+            print(f"Using cached analytics from {age} (cache: {CACHE_PATH})")
+            data = cache["data"]
+            cache_meta = {k: v for k, v in cache.items() if k != "data"}
+        else:
+            print("No cache found; computing inline (this is slow on the droplet)...")
+            print("Tip: run scripts/precompute-analytics.py periodically, or pass --recompute.")
+            data = collect_all_data(args.db)
+
+    # Embed cache metadata so the HTML can render a freshness banner.
+    data["_cache_meta"] = cache_meta
 
     print("Loading brawler portraits...")
     portraits = load_portrait_map()

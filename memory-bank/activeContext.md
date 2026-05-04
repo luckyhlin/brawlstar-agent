@@ -27,10 +27,18 @@ Crawler is **deployed and running on a DigitalOcean droplet** (DEC-007) on a 6-h
 - Dashboard: `scripts/dashboard.py` (local HTTP with portraits, 4 analysis tabs)
 
 ## Next Steps
-1. **Switch droplet from rsync'd code to git clone** — generate SSH key on droplet, register as GitHub deploy key, re-clone repo so future updates flow via `git pull`
+1. **Deploy session-7 changes to droplet** — install `brawl-collect-pinned.timer` + `brawl-analytics.timer`, create `data/pinned_tags.txt`, run first analytics precompute manually.
 2. **Cloudflare R2 nightly backups** — free 10 GB tier, `sqlite3 .backup` → zstd → rclone copyto. Protects against droplet failure.
-3. **SSH polish** — verify your IPv4 home address ends up in fail2ban `ignoreip`
-4. **First weekly observation** — let the timer run for ~7 days, then check growth rate, mode coverage, idle-player ratio. Tune `--battlelog-limit` and cadence if needed.
+3. **First weekly observation** — let the timers run for ~7 days, then check growth rate, mode coverage, idle-player ratio. Tune `--battlelog-limit` and cadence if needed.
+4. **Backfill consideration** — pre-deploy battles in DB have inverted win/loss labels for some players (db.py team-result bug, fixed in dde58a4). Decide whether to delete + re-collect, or accept the historical data noise.
+
+## Completed
+- Droplet provisioned, hardened, deployed (DEC-007)
+- Git deploy active (droplet has its own deploy key); updates via `git pull` (DEC-008)
+- 6h systemd timer for bulk crawler running
+- Pinned-tags crawler + 1h timer (script + tags file ready, systemd unit not yet installed on droplet)
+- Analytics precompute + 1h timer with 45 min watchdog (script + dashboard refactor ready, systemd unit not yet installed on droplet)
+- Dashboard reads cached JSON for instant load; shows cache age + compute time in header
 
 ## Deferred (post-Phase-1)
 - Public dashboard via Cloudflare Tunnel + Pages frontend (only when actually wanted)

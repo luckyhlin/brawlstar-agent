@@ -77,6 +77,21 @@ Current dataset: **160,764 battles** across 11 modes, **553k+ player tags**, tim
 - First collection: 200 global top players, 4,628 battles, 19,845 discovered players
 - Analytics validated: all 4 query types produce meaningful results
 
+### Session 7 — 2026-05-04 — Pinned tags + analytics precompute cache
+- Identified two real gaps in the day-1 deploy:
+  - Bulk crawler ranks by trophies and only fetches top-1500 stale tags per run; with 553k tags discovered, low-trophy tags (personal account, watchlist) effectively never get fetched.
+  - Dashboard launch did full SQL self-joins on every load; ~5-15 min on the 1-CPU droplet, unusable.
+- Added a **pinned-tags crawler** (`scripts/collect-pinned.py` + `data/pinned_tags.txt` gitignored) on a 1h timer. Always fetches a small explicit list independent of the bulk snowball.
+- Refactored dashboard to support **precomputed analytics cache** at `data/analytics_cache.json`:
+  - Extracted `collect_all_data()` and `_collect_personal_data()` from `scripts/dashboard.py` into `src/brawlstar_agent/dashboard_data.py` so both the server and the cron job share the schema.
+  - New `scripts/precompute-analytics.py` runs queries and atomically writes the cache.
+  - `scripts/dashboard.py` reads the cache by default; `--recompute` forces fresh, `--no-cache` skips entirely.
+  - Dashboard header now paints cache age + compute time with color thresholds (orange >30 min compute, red >45 min).
+- New systemd unit pair: `brawl-collect-pinned.service` + `.timer` (every 1h).
+- New systemd unit pair: `brawl-analytics.service` + `.timer` (every 1h, `TimeoutStartSec=2700` watchdog at 45 min).
+- Documented IP semantics (anchor IPv4 = outbound, reserved IPv4 = inbound, both WAN) and SSH config alias pattern in deployment.md.
+- Verified the dashboard refactor compiles cleanly; cache helpers (`read_cache`, `write_cache`) imported successfully.
+
 ### Session 6 — 2026-05-03 — Production deploy on DigitalOcean
 - Provisioned DigitalOcean Basic droplet ($6/mo, Ubuntu 24.04 LTS, US region) — DEC-007
 - Reserved IP `209.38.4.212` attached; BS API key whitelisted both reserved + anchor public IP `64.23.171.86` (DO Reserved IP is inbound-only; outbound uses the anchor)

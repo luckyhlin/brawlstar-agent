@@ -265,7 +265,17 @@ Expected: `OK: fetched 104 brawlers, first: SHELLY` (count varies as Supercell s
 
 If you get **403 accessDenied**: the IP whitelist on the API key doesn't match the droplet's actual outbound IP. Re-verify with `curl -s https://api.ipify.org` and update the BS API key.
 
-## 14. systemd service + timer for periodic crawls
+## 14. systemd services + timers (3 timers in total)
+
+The droplet runs three independent timers:
+
+| Timer | Cadence | Service script | Purpose |
+|---|---|---|---|
+| `brawl-collect.timer` | every 6h | `scripts/collect-battles.py --collect-only ...` | Bulk snowball; tops up battlelogs for high-trophy players |
+| `brawl-collect-pinned.timer` | every 1h | `scripts/collect-pinned.py` | Always-fetch a small list of personal/inspection tags from `data/pinned_tags.txt` |
+| `brawl-analytics.timer` | every 1h | `scripts/precompute-analytics.py` | Pre-compute heavy SQL into `data/analytics_cache.json` so the dashboard launches instantly |
+
+### 14a. Bulk crawler (every 6h)
 
 ```bash
 sudo tee /etc/systemd/system/brawl-collect.service > /dev/null <<'EOF'
@@ -316,6 +326,121 @@ sudo systemctl start --no-block brawl-collect.service
 journalctl -u brawl-collect.service -f    # Ctrl+C to detach
 ```
 
+### 14b. Pinned-tag crawler (every 1h)
+
+The bulk crawler ranks by trophies and only fetches the top ~1500 stale tags per run. With 500k+ tags discovered, your personal account (and other low-trophy tags you care about) effectively never get crawled. This timer always crawls a small explicit list.
+
+First create the tags file. **Don't commit this file** — `data/` is already gitignored.
+
+```bash
+mkdir -p ~/brawlstar-agent/data
+cat > ~/brawlstar-agent/data/pinned_tags.txt <<'EOF'
+# Personal account
+#RYY9LJVL
+
+# Add other tags under inspection below, one per line, e.g.:
+# #ABC123
+EOF
+```
+
+Then the systemd unit pair:
+
+```bash
+sudo tee /etc/systemd/system/brawl-collect-pinned.service > /dev/null <<'EOF'
+[Unit]
+Description=Brawl Stars pinned-tag crawler (personal + watchlist)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=lin
+Group=lin
+WorkingDirectory=/home/lin/brawlstar-agent
+Environment="BRAWL_API_KEY_VAR=BRAWL_STAR_API_DO"
+Environment="UV_CACHE_DIR=/home/lin/.cache/uv"
+Environment="PYTHONPATH=src"
+ExecStart=/home/lin/.local/bin/uv run python scripts/collect-pinned.py
+StandardOutput=journal
+StandardError=journal
+Nice=10
+EOF
+
+sudo tee /etc/systemd/system/brawl-collect-pinned.timer > /dev/null <<'EOF'
+[Unit]
+Description=Run Brawl Stars pinned-tag crawler every 1 hour
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+RandomizedDelaySec=2min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now brawl-collect-pinned.timer
+systemctl list-timers brawl-collect-pinned.timer --no-pager
+```
+
+### 14c. Analytics precompute (every 1h)
+
+The dashboard's matchup/synergy queries do self-joins on ~1M `battle_players` rows — 5-15 min on a 1-CPU droplet. Pre-computing on a schedule and caching to JSON makes the dashboard load in <1 sec.
+
+```bash
+sudo tee /etc/systemd/system/brawl-analytics.service > /dev/null <<'EOF'
+[Unit]
+Description=Brawl Stars analytics precompute (writes data/analytics_cache.json)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=lin
+Group=lin
+WorkingDirectory=/home/lin/brawlstar-agent
+Environment="UV_CACHE_DIR=/home/lin/.cache/uv"
+Environment="PYTHONPATH=src"
+ExecStart=/home/lin/.local/bin/uv run python scripts/precompute-analytics.py
+# Hard kill if compute exceeds 45 min — indicates DB grew or query plan regressed.
+# Failed unit will appear in `systemctl --failed`.
+TimeoutStartSec=2700
+StandardOutput=journal
+StandardError=journal
+Nice=15
+EOF
+
+sudo tee /etc/systemd/system/brawl-analytics.timer > /dev/null <<'EOF'
+[Unit]
+Description=Run Brawl Stars analytics precompute every 1 hour
+
+[Timer]
+OnBootSec=15min
+OnUnitActiveSec=1h
+RandomizedDelaySec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now brawl-analytics.timer
+systemctl list-timers brawl-analytics.timer --no-pager
+```
+
+> The `TimeoutStartSec=2700` is the watchdog: if compute ever exceeds 45 min, systemd kills it and marks the service as failed. The dashboard also paints the cache header **orange** at >30 min and **red** at >45 min, so a slow regression is visible without needing to check logs.
+
+Trigger the first analytics compute manually (so the dashboard has cache to read immediately):
+
+```bash
+sudo systemctl start --no-block brawl-analytics.service
+journalctl -u brawl-analytics.service -f
+```
+
+When `Wrote cache to ... in NNs total` appears in the journal, `data/analytics_cache.json` is ready.
+
 ## 15. Verify data is landing
 
 ```bash
@@ -346,10 +471,22 @@ sudo systemctl restart brawl-collect.service   # only if a running collection sh
 ### Inspect status
 
 ```bash
-systemctl list-timers brawl-collect.timer --no-pager
+# All three timers at once
+systemctl list-timers 'brawl-*' --no-pager
+
+# Per-service status
 systemctl status brawl-collect.service --no-pager
+systemctl status brawl-collect-pinned.service --no-pager
+systemctl status brawl-analytics.service --no-pager
+
+# Recent logs
 journalctl -u brawl-collect.service -n 50 --no-pager
+journalctl -u brawl-collect-pinned.service -n 30 --no-pager
+journalctl -u brawl-analytics.service -n 30 --no-pager
 journalctl -u brawl-collect.service -f             # follow live
+
+# Anything failing?
+systemctl --failed
 sudo fail2ban-client status sshd
 ```
 
@@ -362,6 +499,58 @@ sudo systemctl daemon-reload
 ```
 
 (No restart needed; next timer fire picks up the new args.)
+
+### View the dashboard
+
+**Recommended: SSH tunnel + run dashboard on droplet.** With the analytics cache (Step 14c) populated, the dashboard launches in <1 second by reading `data/analytics_cache.json` instead of running fresh SQL. The cache is refreshed every hour by the `brawl-analytics.timer`.
+
+```bash
+# From any laptop with SSH access
+ssh -L 8765:localhost:8765 lin@<reserved_ip> \
+  'cd ~/brawlstar-agent && PYTHONPATH=src ~/.local/bin/uv run python scripts/dashboard.py --no-open'
+
+# Then in browser:
+#   http://localhost:8765
+```
+
+The dashboard header shows the cache age and compute time:
+- "analytics cached 23 min ago · compute took 87s" — healthy
+- "analytics cached 4.5h ago" colored orange — stale (timer may have failed; check `systemctl --failed`)
+- "compute took 32 min" colored orange — compute is slowing down (DB grew, missing index, etc.)
+- "compute took 47 min" colored red — likely killed by `TimeoutStartSec=2700`
+
+If the cache is missing or you want fresh numbers:
+```bash
+# Force a recompute on the droplet (5-15 min, blocks until done)
+ssh lin@<reserved_ip> 'cd ~/brawlstar-agent && PYTHONPATH=src ~/.local/bin/uv run python scripts/precompute-analytics.py'
+# Then start the dashboard as usual.
+```
+
+> The absolute `~/.local/bin/uv` path is necessary because non-interactive SSH shells don't load `~/.bashrc`. Same reason systemd unit files use the absolute path.
+
+**Alternative: rsync DB to laptop and run dashboard locally.** Useful for ad-hoc deep-dives where you want full power for slicing the data. Skip the cache (laptop is fast enough to compute fresh):
+
+```bash
+# From laptop — sync latest DB from droplet (~3-5 min for ~600 MB)
+rsync -avz --progress lin@<reserved_ip>:/home/lin/brawlstar-agent/data/brawlstars.db \
+  /path/to/local/data/brawlstars.db
+
+# Run dashboard locally with --no-cache (laptop is fast enough)
+cd /path/to/local
+PYTHONPATH=src uv run python scripts/dashboard.py --no-cache
+```
+
+> **Portraits**: the dashboard tries to load brawler portraits from `datasets/character_refs/`. That directory is gitignored. Sync it once (~2.9 MB) so portraits render. Note `--mkpath` — `datasets/` itself won't exist on the droplet after a fresh `git clone`:
+> ```bash
+> # From laptop, one-time:
+> rsync -avz --mkpath /path/to/local/datasets/character_refs/ \
+>   lin@<reserved_ip>:/home/lin/brawlstar-agent/datasets/character_refs/
+> ```
+> Without it, the dashboard still works but uses text-only brawler labels.
+
+`Ctrl+C` in the SSH terminal stops both the dashboard and the tunnel.
+
+For sharing the dashboard outside your laptop (phone, friends), do **not** open UFW. Use Cloudflare Tunnel instead — it exposes the dashboard via a public Cloudflare hostname while keeping your droplet's firewall fully closed. See [Cloudflare Tunnel docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) when you're ready.
 
 ### Backup (when set up)
 
