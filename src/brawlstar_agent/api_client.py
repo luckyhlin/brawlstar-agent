@@ -68,9 +68,13 @@ class BrawlStarsAPI:
     def _load_key() -> str:
         env_path = PROJECT_ROOT / "api.env"
         load_dotenv(env_path)
-        key = os.getenv("BRAWL_STAR_API")
+        # Per-machine override: set BRAWL_API_KEY_VAR=BRAWL_STAR_API_DO on the
+        # DO droplet (or any other host with a different IP-locked key) so the
+        # same api.env can carry multiple keys without code changes.
+        var_name = os.getenv("BRAWL_API_KEY_VAR", "BRAWL_STAR_API")
+        key = os.getenv(var_name)
         if not key:
-            raise RuntimeError(f"BRAWL_STAR_API not found in {env_path}")
+            raise RuntimeError(f"{var_name} not found in {env_path}")
         return key
 
     def _request(self, path: str, params: dict | None = None) -> dict | list:

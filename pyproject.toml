@@ -15,8 +15,9 @@ dependencies = [
     "python-dotenv",
 ]
 
-[tool.uv]
-cache-dir = "/media/lin/disk2/.uv-cache"
+# Per-machine cache location is set via UV_CACHE_DIR env var (see docs/deployment.md).
+# Local dev machine: export UV_CACHE_DIR=/media/lin/disk2/.uv-cache (avoids small /home).
+# Droplet: export UV_CACHE_DIR=$HOME/.cache/uv (default).
 
 [build-system]
 requires = ["hatchling"]

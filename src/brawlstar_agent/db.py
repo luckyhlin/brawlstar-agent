@@ -246,7 +246,7 @@ class BrawlDB:
             )
 
             # Insert player rows
-            self._insert_battle_players(battle_id, battle, mode, is_showdown)
+            self._insert_battle_players(battle_id, battle, mode, is_showdown, fetched_for_tag)
             new += 1
 
         self._conn.commit()
@@ -254,46 +254,36 @@ class BrawlDB:
 
     def _extract_all_tags(self, battle: dict, is_showdown: bool) -> list[str]:
         tags = []
-        if is_showdown and "players" in battle:
-            for p in battle["players"]:
-                tags.append(p["tag"])
-        elif "teams" in battle:
+        if "teams" in battle:
             for team in battle["teams"]:
                 for p in team:
                     tags.append(p["tag"])
+        elif "players" in battle:
+            for p in battle["players"]:
+                tags.append(p["tag"])
         return tags
 
     def _insert_battle_players(
-        self, battle_id: str, battle: dict, mode: str, is_showdown: bool
+        self, battle_id: str, battle: dict, mode: str, is_showdown: bool,
+        fetched_for_tag: str = "",
     ) -> None:
         star_player = battle.get("starPlayer")
         star_tag = star_player.get("tag") if star_player else None
         trophy_change = battle.get("trophyChange")
 
-        if is_showdown and "players" in battle:
-            rank = battle.get("rank")
-            for i, p in enumerate(battle["players"]):
-                brawler = p.get("brawler", {})
-                self._conn.execute(
-                    """INSERT OR IGNORE INTO battle_players
-                       (battle_id, player_tag, team_index, brawler_id, brawler_name,
-                        brawler_power, brawler_trophies, is_star_player, result, trophy_change)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (
-                        battle_id, p["tag"], i,
-                        brawler.get("id", 0), brawler.get("name", "UNKNOWN"),
-                        brawler.get("power"), brawler.get("trophies"),
-                        int(p["tag"] == star_tag) if star_tag else 0,
-                        str(rank) if rank else str(i + 1),
-                        trophy_change if i == 0 else None,
-                    ),
-                )
-                self.upsert_player_tag(p["tag"], p.get("name"))
-        elif "teams" in battle:
+        if "teams" in battle:
             result = battle.get("result", "unknown")
+
+            # Determine which team the fetched player is on.
+            # battle.result is from that player's perspective.
+            fetched_team_idx = 0
+            for ti, team in enumerate(battle["teams"]):
+                if any(p["tag"] == fetched_for_tag for p in team):
+                    fetched_team_idx = ti
+                    break
+
             for team_idx, team in enumerate(battle["teams"]):
-                # team 0 result is the direct result; team 1 is the inverse
-                if team_idx == 0:
+                if team_idx == fetched_team_idx:
                     team_result = result
                 else:
                     team_result = "defeat" if result == "victory" else "victory" if result == "defeat" else result
@@ -315,6 +305,30 @@ class BrawlDB:
                         ),
                     )
                     self.upsert_player_tag(p["tag"], p.get("name"))
+        elif "players" in battle:
+            result = battle.get("result", "unknown")
+            rank = battle.get("rank")
+            for i, p in enumerate(battle["players"]):
+                brawler = p.get("brawler", {})
+                if is_showdown:
+                    p_result = str(rank) if rank else str(i + 1)
+                else:
+                    p_result = result
+                self._conn.execute(
+                    """INSERT OR IGNORE INTO battle_players
+                       (battle_id, player_tag, team_index, brawler_id, brawler_name,
+                        brawler_power, brawler_trophies, is_star_player, result, trophy_change)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        battle_id, p["tag"], i,
+                        brawler.get("id", 0), brawler.get("name", "UNKNOWN"),
+                        brawler.get("power"), brawler.get("trophies"),
+                        int(p["tag"] == star_tag) if star_tag else 0,
+                        p_result,
+                        trophy_change if i == 0 else None,
+                    ),
+                )
+                self.upsert_player_tag(p["tag"], p.get("name"))
 
     def log_collection(self, action: str, target: str, status: str, detail: str | None = None) -> None:
         self._conn.execute(

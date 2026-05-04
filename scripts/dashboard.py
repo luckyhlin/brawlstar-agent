@@ -121,13 +121,20 @@ def collect_all_data(db_path: str) -> dict:
         if rows:
             combos[mode] = rows
 
-    matchups = a.matchup_win_rates(min_sample=20, limit=500)
-    synergies = a.synergy_win_rates(min_sample=20, limit=500)
+    matchups = a.matchup_win_rates(min_sample=50, limit=300)
+    synergies = a.synergy_win_rates(min_sample=50, limit=300)
 
     trophy_tiers = [{"name": name, "lo": lo, "hi": hi} for name, lo, hi in TROPHY_TIERS]
 
     # Statistical model scores
     brawler_scores = a.brawler_scores()
+
+    # Personal data for the main account
+    import os
+    from dotenv import load_dotenv
+    load_dotenv(PROJECT_ROOT / "api.env")
+    my_tag = os.getenv("MAJOR_ACCOUNT_TAG", "")
+    my_data = _collect_personal_data(a._conn, my_tag) if my_tag else None
 
     a.close()
 
@@ -144,6 +151,104 @@ def collect_all_data(db_path: str) -> dict:
         "combos": combos,
         "matchups": matchups,
         "synergies": synergies,
+        "my_data": my_data,
+    }
+
+
+def _collect_personal_data(conn, tag: str) -> dict | None:
+    """Query all tracked data for the main account."""
+    player = conn.execute(
+        "SELECT tag, name, trophies, highest_trophies, exp_level, club_name FROM players WHERE tag = ?",
+        (tag,),
+    ).fetchone()
+    if not player:
+        return None
+
+    # Full battle log with teammates and opponents
+    battles_raw = conn.execute("""
+        SELECT
+            b.battle_id, b.battle_time_iso, b.mode, b.map, b.battle_type,
+            b.duration, b.is_showdown, b.star_player_tag,
+            bp.brawler_name, bp.brawler_trophies, bp.result,
+            bp.trophy_change, bp.is_star_player, bp.team_index
+        FROM battle_players bp
+        JOIN battles b ON bp.battle_id = b.battle_id
+        WHERE bp.player_tag = ?
+        ORDER BY b.battle_time_iso DESC
+    """, (tag,)).fetchall()
+
+    # Build enriched battle entries with teammates/opponents
+    battle_ids = [r["battle_id"] for r in battles_raw]
+    battle_log = []
+    for br in battles_raw:
+        bid = br["battle_id"]
+        my_team_idx = br["team_index"]
+
+        teammates = conn.execute("""
+            SELECT player_tag, brawler_name, brawler_trophies, is_star_player
+            FROM battle_players WHERE battle_id = ? AND team_index = ? AND player_tag != ?
+        """, (bid, my_team_idx, tag)).fetchall()
+
+        opponents = conn.execute("""
+            SELECT player_tag, brawler_name, brawler_trophies, is_star_player
+            FROM battle_players WHERE battle_id = ? AND team_index != ?
+        """, (bid, my_team_idx)).fetchall()
+
+        battle_log.append({
+            "time": br["battle_time_iso"],
+            "mode": br["mode"],
+            "map": br["map"],
+            "type": br["battle_type"],
+            "duration": br["duration"],
+            "brawler": br["brawler_name"],
+            "trophies": br["brawler_trophies"],
+            "result": br["result"],
+            "trophy_change": br["trophy_change"],
+            "star_player": bool(br["is_star_player"]),
+            "teammates": [{"brawler": t["brawler_name"], "trophies": t["brawler_trophies"]} for t in teammates],
+            "opponents": [{"brawler": o["brawler_name"], "trophies": o["brawler_trophies"]} for o in opponents],
+        })
+
+    # Per-brawler stats
+    brawler_stats = conn.execute("""
+        SELECT
+            bp.brawler_name,
+            COUNT(*) as total,
+            SUM(CASE WHEN bp.result = 'victory' THEN 1 ELSE 0 END) as wins,
+            SUM(CASE WHEN bp.is_star_player THEN 1 ELSE 0 END) as star_count,
+            ROUND(100.0 * SUM(CASE WHEN bp.result = 'victory' THEN 1 ELSE 0 END) / COUNT(*), 1) as win_rate
+        FROM battle_players bp
+        JOIN battles b ON bp.battle_id = b.battle_id
+        WHERE bp.player_tag = ? AND bp.result IN ('victory', 'defeat')
+        GROUP BY bp.brawler_name
+        ORDER BY total DESC
+    """, (tag,)).fetchall()
+
+    # Per-mode stats
+    mode_stats = conn.execute("""
+        SELECT
+            b.mode,
+            COUNT(*) as total,
+            SUM(CASE WHEN bp.result = 'victory' THEN 1 ELSE 0 END) as wins,
+            ROUND(100.0 * SUM(CASE WHEN bp.result = 'victory' THEN 1 ELSE 0 END) / COUNT(*), 1) as win_rate
+        FROM battle_players bp
+        JOIN battles b ON bp.battle_id = b.battle_id
+        WHERE bp.player_tag = ? AND bp.result IN ('victory', 'defeat')
+        GROUP BY b.mode
+        ORDER BY total DESC
+    """, (tag,)).fetchall()
+
+    return {
+        "tag": tag,
+        "name": player["name"],
+        "trophies": player["trophies"],
+        "highest_trophies": player["highest_trophies"],
+        "exp_level": player["exp_level"],
+        "club": player["club_name"],
+        "battle_count": len(battle_log),
+        "battle_log": battle_log,
+        "brawler_stats": [dict(r) for r in brawler_stats],
+        "mode_stats": [dict(r) for r in mode_stats],
     }
 
 
@@ -310,6 +415,7 @@ tr:hover td {{ background: rgba(255,255,255,0.03); }}
         <button class="tab" data-tab="combos">Team Compositions</button>
         <button class="tab" data-tab="matchups">Matchups</button>
         <button class="tab" data-tab="synergies">Synergies</button>
+        <button class="tab" data-tab="mydata">My Data</button>
     </div>
 
     <div id="brawlers" class="tab-content active">
@@ -343,6 +449,19 @@ tr:hover td {{ background: rgba(255,255,255,0.03); }}
         <input class="search-box" id="synergySearch" placeholder="Filter by brawler name...">
         <div class="table-wrap"><table id="synergyTable"><thead><tr>
             <th>Brawler A</th><th>Brawler B</th><th>Win Rate</th><th>Games</th>
+        </tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div id="mydata" class="tab-content">
+        <div id="myProfile"></div>
+        <div class="section-label" style="margin-top:16px">My Brawler Stats</div>
+        <div class="brawler-grid" id="myBrawlerGrid"></div>
+        <div class="section-label" style="margin-top:16px">Win Rate by Mode</div>
+        <div id="myModeStats" style="margin-bottom:16px"></div>
+        <div class="section-label" style="margin-top:16px">Battle Log <span style="font-weight:400" id="myBattleCount"></span></div>
+        <div class="mode-filter" id="myLogFilter"></div>
+        <div class="table-wrap" style="max-height:800px"><table id="myLogTable"><thead><tr>
+            <th>Time</th><th>Mode</th><th>Map</th><th>Brawler</th><th>Result</th><th>Teammates</th><th>Opponents</th>
         </tr></thead><tbody></tbody></table></div>
     </div>
 </div>
@@ -638,6 +757,110 @@ function renderSynergyTable(filter) {{
 }}
 renderSynergyTable();
 document.getElementById('synergySearch').addEventListener('input', e => renderSynergyTable(e.target.value));
+
+// My Data tab
+const MY = DATA.my_data;
+let myLogMode = 'all';
+
+function renderMyData() {{
+    if (!MY) {{
+        document.getElementById('myProfile').innerHTML = '<div style="padding:20px;color:var(--text-dim)">No personal data found. Make sure MAJOR_ACCOUNT_TAG is set in api.env and the battlelog has been fetched.</div>';
+        return;
+    }}
+
+    // Profile card
+    document.getElementById('myProfile').innerHTML = `
+        <div class="stats-bar">
+            <div class="stat"><div class="stat-val">${{MY.name}}</div><div class="stat-label">${{MY.tag}}</div></div>
+            <div class="stat"><div class="stat-val">${{(MY.trophies || 0).toLocaleString()}}</div><div class="stat-label">Trophies</div></div>
+            <div class="stat"><div class="stat-val">${{(MY.highest_trophies || MY.trophies || 0).toLocaleString()}}</div><div class="stat-label">Highest</div></div>
+            <div class="stat"><div class="stat-val">${{MY.exp_level || '-'}}</div><div class="stat-label">Level</div></div>
+            <div class="stat"><div class="stat-val">${{MY.club || '-'}}</div><div class="stat-label">Club</div></div>
+            <div class="stat"><div class="stat-val">${{MY.battle_count}}</div><div class="stat-label">Tracked Battles</div></div>
+        </div>`;
+
+    // Brawler stats grid
+    const grid = document.getElementById('myBrawlerGrid');
+    grid.innerHTML = (MY.brawler_stats || []).map(r => {{
+        const url = portraitUrl(r.brawler_name);
+        const imgTag = url ? `<img src="${{url}}" alt="${{r.brawler_name}}">` : `<div style="width:40px;height:40px;border-radius:50%;background:var(--border)"></div>`;
+        return `<div class="brawler-card">
+            ${{imgTag}}
+            <div class="brawler-info">
+                <div class="brawler-name">${{r.brawler_name}}</div>
+                <div class="brawler-stats">${{r.wins}}W ${{r.total - r.wins}}L (${{r.total}} games)${{r.star_count ? ' ⭐' + r.star_count : ''}}</div>
+            </div>
+            <div class="win-rate ${{wrClass(r.win_rate)}}">${{r.win_rate}}%</div>
+        </div>`;
+    }}).join('');
+
+    // Mode stats
+    const modeDiv = document.getElementById('myModeStats');
+    modeDiv.innerHTML = '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+        (MY.mode_stats || []).map(r => `
+            <div class="brawler-card" style="min-width:140px">
+                <div class="brawler-info">
+                    <div class="brawler-name">${{prettyMode(r.mode)}}</div>
+                    <div class="brawler-stats">${{r.wins}}W ${{r.total - r.wins}}L</div>
+                </div>
+                <div class="win-rate ${{wrClass(r.win_rate)}}">${{r.win_rate}}%</div>
+            </div>`
+        ).join('') + '</div>';
+
+    document.getElementById('myBattleCount').textContent = `(${{MY.battle_count}} tracked)`;
+    renderMyLogFilter();
+    renderMyLog();
+}}
+
+function renderMyLogFilter() {{
+    if (!MY) return;
+    const modes = ['all', ...new Set(MY.battle_log.map(b => b.mode))];
+    const container = document.getElementById('myLogFilter');
+    container.innerHTML = modes.map(m =>
+        `<button class="mode-btn ${{m === myLogMode ? 'active' : ''}}" data-mode="${{m}}">${{m === 'all' ? 'All' : prettyMode(m)}}</button>`
+    ).join('');
+    container.querySelectorAll('.mode-btn').forEach(btn => {{
+        btn.addEventListener('click', () => {{
+            myLogMode = btn.dataset.mode;
+            renderMyLogFilter();
+            renderMyLog();
+        }});
+    }});
+}}
+
+function renderMyLog() {{
+    if (!MY) return;
+    let log = MY.battle_log;
+    if (myLogMode !== 'all') log = log.filter(b => b.mode === myLogMode);
+
+    const tbody = document.querySelector('#myLogTable tbody');
+    tbody.innerHTML = log.map(b => {{
+        const time = b.time ? b.time.slice(0, 16).replace('T', ' ') : '?';
+        const resultCls = b.result === 'victory' ? 'wr-high' : b.result === 'defeat' ? 'wr-low' : 'wr-mid';
+        const star = b.star_player ? ' ⭐' : '';
+        const dur = b.duration ? ` (${{b.duration}}s)` : '';
+        const tc = b.trophy_change ? ` ${{b.trophy_change > 0 ? '+' : ''}}${{b.trophy_change}}` : '';
+
+        const tmStr = (b.teammates || []).map(t =>
+            `${{portraitImg(t.brawler)}}${{t.brawler}}`
+        ).join(', ') || '-';
+        const opStr = (b.opponents || []).map(o =>
+            `${{portraitImg(o.brawler)}}${{o.brawler}}`
+        ).join(', ') || '-';
+
+        return `<tr>
+            <td style="white-space:nowrap;font-size:0.85em">${{time}}</td>
+            <td>${{prettyMode(b.mode)}}</td>
+            <td style="font-size:0.85em">${{b.map || '-'}}</td>
+            <td>${{portraitImg(b.brawler)}}${{b.brawler}}</td>
+            <td><span class="${{resultCls}}" style="font-weight:600">${{b.result}}${{star}}${{tc}}</span>${{dur}}</td>
+            <td style="font-size:0.85em">${{tmStr}}</td>
+            <td style="font-size:0.85em">${{opStr}}</td>
+        </tr>`;
+    }}).join('');
+}}
+
+renderMyData();
 </script>
 </body>
 </html>"""

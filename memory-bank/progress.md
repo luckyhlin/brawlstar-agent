@@ -2,7 +2,9 @@
 
 ## Current Phase
 
-**API Battle Analytics**: Pipeline built and running. First collection pass done (4,628 battles from 200 top global players). Analytics queries operational.
+**Production deploy**: Crawler is now hosted on a DigitalOcean droplet with a 6-hour systemd timer. Collection runs autonomously, accumulating fresh battle data without an always-on home machine. Local machine remains the dev environment; droplet pulls code via git (DEC-008).
+
+Current dataset: **160,764 battles** across 11 modes, **553k+ player tags**, time range now caught up to **2026-05-04**.
 
 ## Done
 
@@ -74,3 +76,22 @@
   - `scripts/collect-battles.py` + `scripts/analyze-battles.py` CLI tools
 - First collection: 200 global top players, 4,628 battles, 19,845 discovered players
 - Analytics validated: all 4 query types produce meaningful results
+
+### Session 6 — 2026-05-03 — Production deploy on DigitalOcean
+- Provisioned DigitalOcean Basic droplet ($6/mo, Ubuntu 24.04 LTS, US region) — DEC-007
+- Reserved IP `209.38.4.212` attached; BS API key whitelisted both reserved + anchor public IP `64.23.171.86` (DO Reserved IP is inbound-only; outbound uses the anchor)
+- Hardened: non-root sudo user `lin`, key-only SSH, root login disabled, UFW (allow OpenSSH only), fail2ban with home-IP allowlist
+- Defused needrestart auto-restart of services on `apt install` (`/etc/needrestart/needrestart.conf` → `restart = 'l'`)
+- Python 3.12 + uv installed; project rsynced; `uv sync` succeeded after overriding the hardcoded `cache-dir` from `pyproject.toml` via `UV_CACHE_DIR` env var
+- Made `api_client.py` portable across machines via `BRAWL_API_KEY_VAR` indirection — same `api.env` file works on both local (uses `BRAWL_STAR_API`) and droplet (uses `BRAWL_STAR_API_DO`)
+- systemd service + 6h timer for `scripts/collect-battles.py --collect-only --battlelog-limit 1500 --rps 2`; Persistent=true so missed runs catch up
+- First scheduled run: +35,860 new battles in ~5 min; total now **160,764 battles**, latest battle `2026-05-04` (caught up to today)
+- Adopted local-primary git deploy workflow — DEC-008
+- Cleaned `pyproject.toml`: removed hardcoded `cache-dir`, replaced with `UV_CACHE_DIR` env var per machine
+- Wrote `docs/deployment.md` as a step-by-step runbook for fresh-VPS migration
+- **Pitfalls captured** (now documented in deployment runbook):
+  - DO Reserved IPs are inbound-only by default — must whitelist anchor public IP for outbound API calls
+  - needrestart on Ubuntu 24.04 will auto-restart services mid-run on every `apt install`
+  - fail2ban's first restart races with its socket; `sleep 2` before `fail2ban-client`
+  - `pyproject.toml`'s `[tool.uv] cache-dir` is non-portable; use env var instead
+  - `Type=oneshot` services block `systemctl start` until the run completes — use `--no-block` or run from another shell
