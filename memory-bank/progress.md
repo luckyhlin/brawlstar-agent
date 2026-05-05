@@ -93,6 +93,13 @@
 - Verified the dashboard refactor compiles cleanly; cache helpers (`read_cache`, `write_cache`) imported successfully.
 - Added `--remote-cache HOST` flag to `scripts/dashboard.py`: auto-rsyncs cache from a remote SSH host before launching. Makes the local-laptop workflow trivial — no SSH tunnel, no DB sync, just `uv run python scripts/dashboard.py --remote-cache brawl`. Falls back to local cache if rsync fails (offline-tolerant).
 
+### Session 8 (continued) — 2026-05-04 evening — Verification + cold-start orchestrator
+- Wrote `scripts/verify-bug.py` to empirically test the team-result bug rate by re-fetching legacy battles from low-activity participants and comparing post-fix API results to stored labels.
+- Ran 80 candidates → 20 recoverable → **0 flipped**. Surprising at first, but diagnostic: all 20 recovered battles turned out to be post-fix-INGESTED (pre-cutoff battle_time but post-deploy ingestion). The bug is intrinsically untestable in stored data — pre-fix-ingested battles have all aged out of the API window.
+- Cross-check via `collection_log.fetch_battlelog` timestamps revealed **6,045 pre-cutoff battles are provably post-fix-INGESTED** (clean labels), 75,045 are pre-fix-or-ambiguous (likely buggy). Time-based cutoff is conservative; an ingestion-time filter could recover the 6k. Filed as v2 candidate.
+- Updated `docs/recommender-v1.md` § "Why we can't recover the legacy bug labels" with the actual results and the post-fix-INGESTED finding.
+- Wrote `scripts/coldstart-droplet.sh` orchestrator for the planned cold-start: phase 1 backup + rsync hint, phase 2 stop timers + purge + VACUUM + aggressive crawl in nohup. Idempotent, dry-run safe, tunable via `COLDSTART_RPS` / `COLDSTART_LIMIT` / `COLDSTART_OLDER_THAN` env vars. Existing api_client retry/backoff handles 429s and 5xx natively, no new fallback code needed.
+
 ### Session 8 (continued) — 2026-05-04 — Recommender v1.1 — top-K eval, baselines floor, collector bug fix
 - **Found and fixed a real collector bug**: `scripts/collect-battles.py --collect-only` (the systemd-timer command on the droplet) skipped `seed_brawlers()`. So the `brawlers` table was frozen at 101 rows since the May-3 deploy, even though new brawlers (DAMIAN id 16000104, first seen in battles **2026-04-24**) had been showing up in `battle_players`. Patch: `--collect-only` now seeds brawlers once at the start of every run. One extra API call per 6 hours, idempotent UPSERT.
 - **Confirmed 4,820 `UNKNOWN` (id=0) brawler_player rows** — these are battles where the API returned a malformed/missing brawler dict. Edge case, not a model concern (recommender filters them out via vocab).

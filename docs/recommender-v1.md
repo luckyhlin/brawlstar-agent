@@ -249,11 +249,36 @@ This is a small experiment — maybe 50-100 verifiable battles, which would tell
 
 But verification doesn't enable correction. Even if we proved 50% of legacy battles are flipped, **we still can't tell which 50%** without re-fetching each one. And re-fetching is impossible for the bulk of legacy data because of the 25-battle window.
 
-### Operational conclusion
+### What we actually saw when we ran the verification (2026-05-04)
 
-Strict post-2026-05-03 filter for everything (training, evaluation, inference). Documented as DEC-010. The verification experiment described above is interesting science but doesn't change the operational stance — it would only confirm the bug rate, which is already inferable from the code change.
+`scripts/verify-bug.py` was run against 80 candidate battles from 2026-04-25 to 2026-05-02 (the bug's last week). Result:
 
-If you want to run it later, the script outline is in this section; it's <100 lines of code and would take ~30 min to run with the existing API client.
+| Metric | Count |
+|---|---|
+| Attempted | 80 |
+| Battle aged out of API | 60 |
+| **Recoverable** | **20** |
+| Bug fired (FLIPPED) | 0 |
+| Match (no flip) | 20 |
+
+A naive read says "bug rate = 0%", but **all 20 recovered battles turned out to be post-fix-INGESTED** (their `battle_time` was pre-cutoff but they were ingested by the post-deploy crawler). The participants who still had them in their last-25 are exactly the low-activity players whose first crawl happened post-deploy — selection bias makes them all post-fix.
+
+So the verification *cannot* test pre-fix-ingested battles because those have all aged out of the API. The 0% flip rate is consistent with "post-fix code produces correct labels" (the null hypothesis), not with "the bug never fired".
+
+A cross-check via `collection_log` is more informative:
+
+| Class (pre-cutoff battles) | Count |
+|---|---|
+| Definitely post-fix-INGESTED (provably clean labels) | **6,045** |
+| Pre-fix-INGESTED or ambiguous (likely contains the buggy data) | 75,045 |
+
+So **8% of pre-cutoff-time battles are actually clean** — the time-based filter is conservative. We could relax `CLEAN_CUTOFF_ISO` to use ingestion-time (`collection_log.created_at`) instead of battle-time, recovering ~6k clean rows. Filed as a v2 candidate.
+
+### Operational conclusion (unchanged)
+
+Strict post-2026-05-03 filter for training and evaluation. DEC-010 stands by code analysis; the empirical bug rate is intrinsically untestable. The 6k recoverable clean rows are a small bonus available later via the smarter ingestion-time filter.
+
+`reports/verify_bug.json` has the per-battle details for spot-checking.
 
 ## How to retrain
 

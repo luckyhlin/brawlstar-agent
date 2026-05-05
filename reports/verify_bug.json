@@ -1,0 +1,537 @@
+{
+  "attempted": 80,
+  "recovered": 20,
+  "flipped": 0,
+  "matches": 20,
+  "player_not_found": 0,
+  "battle_aged_out": 60,
+  "empirical_bug_rate": 0.0805650627474666,
+  "ci_95_lo": 0.0,
+  "ci_95_hi": 0.1611301254949332,
+  "since": "2026-04-25T00:00:00+00:00",
+  "until": "2026-05-03T01:00:00+00:00",
+  "max_total_battles": 4,
+  "elapsed_seconds": 61.100287437438965,
+  "details": [
+    {
+      "battle_id": "20260503T005932.000Z:#28V9R8G|#28VPJU0|#28VPYGU|#GC09C0G2J|#LYCGL2JR|#P02VJ982P",
+      "player": "#GC09C0G2J",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005932.000Z:#28V9R8G|#28VPJU0|#28VPYGU|#GC09C0G2J|#LYCGL2JR|#P02VJ982P",
+      "player": "#P02VJ982P",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005918.000Z:#2GLVRV9LQL|#2RC8UGUPQ0|#CCC2CP2J|#JVRQ0PQ2|#PJQRQGLCV|#Y8PQVUC0J",
+      "player": "#JVRQ0PQ2",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005705.000Z:#2QPPJP0RJ|#2UVL9VQU9|#900VU8RV|#9V8JRYCC|#L20PVQ2QJ|#YPURQUPY",
+      "player": "#2QPPJP0RJ",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005705.000Z:#2QPPJP0RJ|#2UVL9VQU9|#900VU8RV|#9V8JRYCC|#L20PVQ2QJ|#YPURQUPY",
+      "player": "#900VU8RV",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005636.000Z:#2PCR092PYU|#CCC2CP2J|#LPVYLGG90|#URL288R2|#Y8PQVUC0J|#YYQ8JVYPU",
+      "player": "#2PCR092PYU",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005636.000Z:#2PCR092PYU|#CCC2CP2J|#LPVYLGG90|#URL288R2|#Y8PQVUC0J|#YYQ8JVYPU",
+      "player": "#YYQ8JVYPU",
+      "battle_time_iso": "2026-05-03T00:56:36+00:00",
+      "stored": "defeat",
+      "actual": "defeat",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T005636.000Z:#2PCR092PYU|#CCC2CP2J|#LPVYLGG90|#URL288R2|#Y8PQVUC0J|#YYQ8JVYPU",
+      "player": "#URL288R2",
+      "battle_time_iso": "2026-05-03T00:56:36+00:00",
+      "stored": "defeat",
+      "actual": "defeat",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T005629.000Z:#2JUJP2VGJL|#2QJVJ20Y99|#9CLP22J2C|#GC22Y0G0G|#J0UQQG0VC|#LUL0P02GV",
+      "player": "#LUL0P02GV",
+      "battle_time_iso": "2026-05-03T00:56:29+00:00",
+      "stored": "victory",
+      "actual": "victory",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T005629.000Z:#2JUJP2VGJL|#2QJVJ20Y99|#9CLP22J2C|#GC22Y0G0G|#J0UQQG0VC|#LUL0P02GV",
+      "player": "#2QJVJ20Y99",
+      "battle_time_iso": "2026-05-03T00:56:29+00:00",
+      "stored": "victory",
+      "actual": "victory",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T005553.000Z:#290UL9GLR|#2GU0V02QCR|#2YQUGRVR|#8RL2GPY08|#9VJ2822RJ|#LVGRRUUYQ",
+      "player": "#8RL2GPY08",
+      "battle_time_iso": "2026-05-03T00:55:53+00:00",
+      "stored": "defeat",
+      "actual": "defeat",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T005553.000Z:#290UL9GLR|#2GU0V02QCR|#2YQUGRVR|#8RL2GPY08|#9VJ2822RJ|#LVGRRUUYQ",
+      "player": "#9VJ2822RJ",
+      "battle_time_iso": "2026-05-03T00:55:53+00:00",
+      "stored": "defeat",
+      "actual": "defeat",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T005553.000Z:#290UL9GLR|#2GU0V02QCR|#2YQUGRVR|#8RL2GPY08|#9VJ2822RJ|#LVGRRUUYQ",
+      "player": "#2YQUGRVR",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005551.000Z:#2PPL88U|#2PPLUR8|#2PPYVGP|#2UQ2QCLGL|#999V2CUP9|#VGR229JG",
+      "player": "#2UQ2QCLGL",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005439.000Z:#2Y9PRGPU8J|#9GLG2VYY9|#CCC2CP2J|#PY2GLQUUQ|#QPVYLJ22Y|#Y8PQVUC0J",
+      "player": "#PY2GLQUUQ",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005439.000Z:#2Y9PRGPU8J|#9GLG2VYY9|#CCC2CP2J|#PY2GLQUUQ|#QPVYLJ22Y|#Y8PQVUC0J",
+      "player": "#QPVYLJ22Y",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005414.000Z:#829VGV9PV|#8UQ2UULQJ|#999V2CUP9|#PQY2R2CL|#VGR229JG|#YLGLLCUY8",
+      "player": "#PQY2R2CL",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005351.000Z:#290UL9GLR|#2C29QP0YCR|#2RCP2G98GP|#9GPLGCJV8|#LVGRRUUYQ|#QLPU2022",
+      "player": "#QLPU2022",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005351.000Z:#290UL9GLR|#2C29QP0YCR|#2RCP2G98GP|#9GPLGCJV8|#LVGRRUUYQ|#QLPU2022",
+      "player": "#2C29QP0YCR",
+      "battle_time_iso": "2026-05-03T00:53:51+00:00",
+      "stored": "defeat",
+      "actual": "defeat",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T005351.000Z:#290UL9GLR|#2C29QP0YCR|#2RCP2G98GP|#9GPLGCJV8|#LVGRRUUYQ|#QLPU2022",
+      "player": "#2RCP2G98GP",
+      "battle_time_iso": "2026-05-03T00:53:51+00:00",
+      "stored": "defeat",
+      "actual": "defeat",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T005300.000Z:#2R9VV9GL0|#2UVL9VQU9|#9V8JRYCC|#L20PVQ2QJ|#P9YLL2GP|#Q8GYQ9LRL",
+      "player": "#Q8GYQ9LRL",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005243.000Z:#8PG8V8CC8|#999V2CUP9|#9L9J9L|#9L9QGU|#9LPP28|#VGR229JG",
+      "player": "#8PG8V8CC8",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005148.000Z:#290UL9GLR|#2GLGRYU8UP|#2J0U99GVJ9|#88C2RJJ00|#GJJLGYU2P|#LVGRRUUYQ",
+      "player": "#GJJLGYU2P",
+      "battle_time_iso": "2026-05-03T00:51:48+00:00",
+      "stored": "defeat",
+      "actual": "defeat",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T005148.000Z:#290UL9GLR|#2GLGRYU8UP|#2J0U99GVJ9|#88C2RJJ00|#GJJLGYU2P|#LVGRRUUYQ",
+      "player": "#2J0U99GVJ9",
+      "battle_time_iso": "2026-05-03T00:51:48+00:00",
+      "stored": "defeat",
+      "actual": "defeat",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T005148.000Z:#290UL9GLR|#2GLGRYU8UP|#2J0U99GVJ9|#88C2RJJ00|#GJJLGYU2P|#LVGRRUUYQ",
+      "player": "#2GLGRYU8UP",
+      "battle_time_iso": "2026-05-03T00:51:48+00:00",
+      "stored": "defeat",
+      "actual": "defeat",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T005123.000Z:#2PG8U0C2R|#8UJYU2L2P|#999V2CUP9|#9RGPP08G|#RJLR2Y2P2|#VGR229JG",
+      "player": "#RJLR2Y2P2",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005000.000Z:#2G2P22VRL|#2PVPCP0VUG|#8GQQLY8V2|#8Y29RP90|#P9U8JLUVL|#QUG2LJGU",
+      "player": "#QUG2LJGU",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005000.000Z:#2G2P22VRL|#2PVPCP0VUG|#8GQQLY8V2|#8Y29RP90|#P9U8JLUVL|#QUG2LJGU",
+      "player": "#2PVPCP0VUG",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T005000.000Z:#2G2P22VRL|#2PVPCP0VUG|#8GQQLY8V2|#8Y29RP90|#P9U8JLUVL|#QUG2LJGU",
+      "player": "#8GQQLY8V2",
+      "battle_time_iso": "2026-05-03T00:50:00+00:00",
+      "stored": "victory",
+      "actual": "victory",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T004932.000Z:#290UL9GLR|#2CL2RGP0J2|#2YUY2R2888|#8820LVLJ|#LVGRRUUYQ|#PGY0890RY",
+      "player": "#2YUY2R2888",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004915.000Z:#2C2RVYQCP|#2LCV2RQ2Q|#2UVL9VQU9|#9V8JRYCC|#L20PVQ2QJ|#LLYGY02Q",
+      "player": "#LLYGY02Q",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004915.000Z:#2C2RVYQCP|#2LCV2RQ2Q|#2UVL9VQU9|#9V8JRYCC|#L20PVQ2QJ|#LLYGY02Q",
+      "player": "#2LCV2RQ2Q",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004900.000Z:#2LPPRY9CPU|#9GU9CGCC0|#9UP2RQYVQ|#GJGCCLQ2R|#JU0LJ0G|#V2RLLGJY",
+      "player": "#9UP2RQYVQ",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004850.000Z:#2QJ08JCPVL|#2RY2JR8VC|#2UGJGQUUYP|#2UPR0GGPRJ|#898QJ2VJU|#99J0CJG",
+      "player": "#2UGJGQUUYP",
+      "battle_time_iso": "2026-05-03T00:48:50+00:00",
+      "stored": "defeat",
+      "actual": "defeat",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T004850.000Z:#2QJ08JCPVL|#2RY2JR8VC|#2UGJGQUUYP|#2UPR0GGPRJ|#898QJ2VJU|#99J0CJG",
+      "player": "#2UPR0GGPRJ",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004850.000Z:#2QJ08JCPVL|#2RY2JR8VC|#2UGJGQUUYP|#2UPR0GGPRJ|#898QJ2VJU|#99J0CJG",
+      "player": "#2QJ08JCPVL",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004805.000Z:#2CQPR0URC|#2QQLY0U|#2QQQ2Q8|#2QQQRPU|#8Y29RP90|#9GR2Q9U2V",
+      "player": "#2CQPR0URC",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004805.000Z:#2CQPR0URC|#2QQLY0U|#2QQQ2Q8|#2QQQRPU|#8Y29RP90|#9GR2Q9U2V",
+      "player": "#9GR2Q9U2V",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004722.000Z:#2YPLYV9G8R|#920PPG|#920YGU|#9229YL|#GJGCCLQ2R|#YRQ8880RU",
+      "player": "#2YPLYV9G8R",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004722.000Z:#2YPLYV9G8R|#920PPG|#920YGU|#9229YL|#GJGCCLQ2R|#YRQ8880RU",
+      "player": "#YRQ8880RU",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004635.000Z:#2CYPJCGRGC|#2RY2JR8VC|#898QJ2VJU|#99J0CJG|#G0Q0R9QP0|#RGULJ89QP",
+      "player": "#RGULJ89QP",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004635.000Z:#2CYPJCGRGC|#2RY2JR8VC|#898QJ2VJU|#99J0CJG|#G0Q0R9QP0|#RGULJ89QP",
+      "player": "#G0Q0R9QP0",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004635.000Z:#2CYPJCGRGC|#2RY2JR8VC|#898QJ2VJU|#99J0CJG|#G0Q0R9QP0|#RGULJ89QP",
+      "player": "#2CYPJCGRGC",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004613.000Z:#2280L2LYV|#8RPC9JRCG|#90PJ8JLQ9|#GJGCCLQ2R|#YL0GJCYCC|#YUJC0PYP9",
+      "player": "#8RPC9JRCG",
+      "battle_time_iso": "2026-05-03T00:46:13+00:00",
+      "stored": "victory",
+      "actual": "victory",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T004613.000Z:#2280L2LYV|#8RPC9JRCG|#90PJ8JLQ9|#GJGCCLQ2R|#YL0GJCYCC|#YUJC0PYP9",
+      "player": "#2280L2LYV",
+      "battle_time_iso": "2026-05-03T00:46:13+00:00",
+      "stored": "victory",
+      "actual": "victory",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T004613.000Z:#2280L2LYV|#8RPC9JRCG|#90PJ8JLQ9|#GJGCCLQ2R|#YL0GJCYCC|#YUJC0PYP9",
+      "player": "#90PJ8JLQ9",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004524.000Z:#292CLC980|#2J9JVJRC9|#999V2CUP9|#J9UYYV2|#PRV9L28R|#RRRGUYQJL",
+      "player": "#RRRGUYQJL",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004447.000Z:#28JV8GP9R|#2UVL9VQU9|#8J8QRG2YG|#8YQLY299Q|#9V8JRYCC|#L20PVQ2QJ",
+      "player": "#28JV8GP9R",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004447.000Z:#28JV8GP9R|#2UVL9VQU9|#8J8QRG2YG|#8YQLY299Q|#9V8JRYCC|#L20PVQ2QJ",
+      "player": "#8J8QRG2YG",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004340.000Z:#2CQUV2RPCP|#2LVCLVQL8C|#8L2L89P9L|#LU2UJRLJC|#LYCGL2JR|#PY0PQVYQ9",
+      "player": "#PY0PQVYQ9",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T004340.000Z:#2CQUV2RPCP|#2LVCLVQL8C|#8L2L89P9L|#LU2UJRLJC|#LYCGL2JR|#PY0PQVYQ9",
+      "player": "#2LVCLVQL8C",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 24
+    },
+    {
+      "battle_id": "20260503T003851.000Z:#8J0GV902L|#999V2CUP9|#99GYV00LP|#GC8LQY20L|#PUJJ82QJY|#VGR229JG",
+      "player": "#PUJJ82QJY",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003851.000Z:#8J0GV902L|#999V2CUP9|#99GYV00LP|#GC8LQY20L|#PUJJ82QJY|#VGR229JG",
+      "player": "#GC8LQY20L",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003851.000Z:#8J0GV902L|#999V2CUP9|#99GYV00LP|#GC8LQY20L|#PUJJ82QJY|#VGR229JG",
+      "player": "#8J0GV902L",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003735.000Z:#2CQUV2RPCP|#2YUL8Y0RJV|#G9V8YR0VJ|#LYCGL2JR|#Y9JPC9GRC|#YRC8YV2CU",
+      "player": "#G9V8YR0VJ",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003650.000Z:#2GUVRRC9V|#2JJU9Y0Y9|#80Y0UV0VP|#999V2CUP9|#99GYV00LP|#VGR229JG",
+      "player": "#2GUVRRC9V",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003650.000Z:#2GUVRRC9V|#2JJU9Y0Y9|#80Y0UV0VP|#999V2CUP9|#99GYV00LP|#VGR229JG",
+      "player": "#80Y0UV0VP",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003650.000Z:#2GUVRRC9V|#2JJU9Y0Y9|#80Y0UV0VP|#999V2CUP9|#99GYV00LP|#VGR229JG",
+      "player": "#2JJU9Y0Y9",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003649.000Z:#2RY2JR8VC|#898QJ2VJU|#99J0CJG|#GC8L20QU|#PQU2JYYUQ|#PVRQJCJ08",
+      "player": "#PQU2JYYUQ",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003649.000Z:#2RY2JR8VC|#898QJ2VJU|#99J0CJG|#GC8L20QU|#PQU2JYYUQ|#PVRQJCJ08",
+      "player": "#PVRQJCJ08",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003649.000Z:#2RY2JR8VC|#898QJ2VJU|#99J0CJG|#GC8L20QU|#PQU2JYYUQ|#PVRQJCJ08",
+      "player": "#GC8L20QU",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003531.000Z:#2CQUV2RPCP|#8LU9G2VP9|#LYCGL2JR|#YYCUP0|#YYCVGP|#YYUGJP",
+      "player": "#8LU9G2VP9",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003525.000Z:#2UQG2CRGC|#8RV2YUC0Y|#99LC9YC9V|#9PJP8UVLY|#PP2PRJ0R8|#PRY9PGL0G",
+      "player": "#2UQG2CRGC",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003525.000Z:#2UQG2CRGC|#8RV2YUC0Y|#99LC9YC9V|#9PJP8UVLY|#PP2PRJ0R8|#PRY9PGL0G",
+      "player": "#PP2PRJ0R8",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003522.000Z:#20R2YCURUC|#2RY2JR8VC|#2V2Y9QPPYC|#898QJ2VJU|#99J0CJG|#LP8QVULG9",
+      "player": "#2V2Y9QPPYC",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003522.000Z:#20R2YCURUC|#2RY2JR8VC|#2V2Y9QPPYC|#898QJ2VJU|#99J0CJG|#LP8QVULG9",
+      "player": "#20R2YCURUC",
+      "battle_time_iso": "2026-05-03T00:35:22+00:00",
+      "stored": "defeat",
+      "actual": "defeat",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T003522.000Z:#20R2YCURUC|#2RY2JR8VC|#2V2Y9QPPYC|#898QJ2VJU|#99J0CJG|#LP8QVULG9",
+      "player": "#LP8QVULG9",
+      "battle_time_iso": "2026-05-03T00:35:22+00:00",
+      "stored": "defeat",
+      "actual": "defeat",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T003453.000Z:#2URL9LU2V0|#9VYV08GLY|#PCRUPGJ82|#VG8J0G|#VG8L2J|#VG8UR8",
+      "player": "#9VYV08GLY",
+      "battle_time_iso": "2026-05-03T00:34:53+00:00",
+      "stored": "victory",
+      "actual": "victory",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T003453.000Z:#2URL9LU2V0|#9VYV08GLY|#PCRUPGJ82|#VG8J0G|#VG8L2J|#VG8UR8",
+      "player": "#2URL9LU2V0",
+      "battle_time_iso": "2026-05-03T00:34:53+00:00",
+      "stored": "victory",
+      "actual": "victory",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T003309.000Z:#22YJ89P09U|#2YY02V8YC|#99LC9YC9V|#C0QUY800R|#G299UQ98V|#GGQR0JYGR",
+      "player": "#GGQR0JYGR",
+      "battle_time_iso": "2026-05-03T00:33:09+00:00",
+      "stored": "defeat",
+      "actual": "defeat",
+      "outcome": "match"
+    },
+    {
+      "battle_id": "20260503T003309.000Z:#22YJ89P09U|#2YY02V8YC|#99LC9YC9V|#C0QUY800R|#G299UQ98V|#GGQR0JYGR",
+      "player": "#22YJ89P09U",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003309.000Z:#22YJ89P09U|#2YY02V8YC|#99LC9YC9V|#C0QUY800R|#G299UQ98V|#GGQR0JYGR",
+      "player": "#2YY02V8YC",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003245.000Z:#8RV2YUC0Y|#LQLV0U|#LQLY98|#LQQ0Y8|#R800V92LG|#R9Q292V2L",
+      "player": "#R9Q292V2L",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003225.000Z:#29L8PGP9R|#2QJ28RQ9G|#82JCLLPCC|#9JU0VRQQ2|#PGYJJ2PCL|#Q8PRJQQG",
+      "player": "#2QJ28RQ9G",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003225.000Z:#29L8PGP9R|#2QJ28RQ9G|#82JCLLPCC|#9JU0VRQQ2|#PGYJJ2PCL|#Q8PRJQQG",
+      "player": "#82JCLLPCC",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003225.000Z:#29L8PGP9R|#2QJ28RQ9G|#82JCLLPCC|#9JU0VRQQ2|#PGYJJ2PCL|#Q8PRJQQG",
+      "player": "#9JU0VRQQ2",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003121.000Z:#2RY2JR8VC|#898QJ2VJU|#99J0CJG|#GJQVQYVG|#PU8L802GG|#R9GLQVC89",
+      "player": "#GJQVQYVG",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003121.000Z:#2RY2JR8VC|#898QJ2VJU|#99J0CJG|#GJQVQYVG|#PU8L802GG|#R9GLQVC89",
+      "player": "#R9GLQVC89",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003121.000Z:#2RY2JR8VC|#898QJ2VJU|#99J0CJG|#GJQVQYVG|#PU8L802GG|#R9GLQVC89",
+      "player": "#PU8L802GG",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    },
+    {
+      "battle_id": "20260503T003059.000Z:#222V28J8C8|#2C8U9YPG89|#2JVV2QQV0U|#2UJJC2U9Y|#P9CLVLQ28|#PCG88LJVQ",
+      "player": "#222V28J8C8",
+      "outcome": "battle_aged_out",
+      "fresh_battlelog_size": 25
+    }
+  ]
+}
