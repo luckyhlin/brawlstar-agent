@@ -13,6 +13,10 @@ dependencies = [
     "matplotlib",
     "httpx",
     "python-dotenv",
+    "scikit-learn>=1.8.0",
+    "lightgbm>=4.6.0",
+    "pandas>=3.0.2",
+    "pyarrow>=24.0.0",
 ]
 
 # Per-machine cache location is set via UV_CACHE_DIR env var (see docs/deployment.md).

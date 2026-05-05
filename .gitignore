@@ -4,6 +4,10 @@ __pycache__/
 *.pyo
 *.egg-info/
 .venv/
+.uv-cache-local/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
 
 # Emulator & SDK (30GB, dead end — DEC-003/004)
 emulator/
