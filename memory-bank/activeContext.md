@@ -2,56 +2,61 @@
 
 ## Current State
 
-Crawler is **deployed and running on a DigitalOcean droplet** (DEC-007) on a 6-hour systemd timer. Local-primary workflow with git pull on the droplet (DEC-008). Data is fresh through today.
+**Phase 6 v1 shipped (Session 8, 2026-05-04)**: brawler-pick recommender trained, evaluated, documented, and committed. LightGBM team-completion model achieves AUC 0.730 (random) / 0.704 (temporal) on clean post-fix data.
 
-**Production droplet**: `lin@209.38.4.212` (reserved IP) / `64.23.171.86` (anchor / outbound IP)
-**DB on droplet**: `~/brawlstar-agent/data/brawlstars.db` — independent copy from local; the droplet is the source of truth for production collection.
+**Production crawl** still running on droplet (3 systemd timers from Session 7). Local DB synced this session: 210k battles, latest 2026-05-05, **78k clean post-fix** battles.
 
 ## Operating principle (DEC-009)
 
 - **Remote**: routine/periodic — crawlers, scheduled analytics precompute, backups
 - **Local**: interactive/heavy — dashboard, ad-hoc queries, ML training, exploration
-- Cache flows local from droplet via `dashboard.py --remote-cache`; DB rsync only for ad-hoc deep-dives
+- Cache flows local from droplet via `dashboard.py --remote-cache`; DB rsync only for ad-hoc deep-dives or model retraining
 
 ## What Works
-- **API client**: rate-limited (1-2 req/s), auth from api.env, retry with exponential backoff
-- **SQLite storage**: normalized schema, dedup by (battleTime + sorted tags), WAL mode
-- **Collector**: seed from rankings → fetch battlelogs → snowball discovered tags, resume-safe
-- **Analytics**: 4 query types all working with filter support (mode, trophy range, time window)
-  1. Brawler win rates per mode
-  2. Team composition (3-brawler combo) win rates
-  3. Matchup matrix (brawler A vs opposing brawler B)
-  4. Synergy matrix (brawler A + brawler B on same team)
 
-## Current Data (2026-05-02 snapshot)
-- 124,904 battles (11 modes; brawlBall, soloShowdown, duoShowdown lead)
-- 553,915 player tags discovered (snowball from top-200 seeds; only 6,168 have trophy data, 5,968 have full profile)
-- 971,341 battle_player rows
-- 101 brawlers cataloged
-- Time range: 2021-12-16 .. 2026-04-15 (last ingestion 2026-04-15, ~17 days idle)
-- DB size: 617 MB at `data/brawlstars.db` (largest consumers: battle_players + indexes ~50%)
-- Dashboard: `scripts/dashboard.py` (local HTTP with portraits, 4 analysis tabs)
+### Crawler & analytics infra (Sessions 6-7, unchanged)
+- API client, SQLite collector, snowball discovery, three timers on droplet
+- Dashboard reads pre-computed `analytics_cache.json` for instant load
+- `--remote-cache` flag rsyncs cache from droplet for laptop-only viewing
 
-## Next Steps
+### Recommender v1 (this session)
+- `src/brawlstar_agent/recommender/` subpackage
+- `scripts/train-recommender.py` — re-runnable end-to-end (key for the "transferable algorithm" framing across months)
+- `scripts/analyze-recommender.py` — plots, feature importance, DAMIAN deep-dive
+- `notebooks/recommender_v1.ipynb` — executed, with outputs
+- `docs/recommender-v1.md` — full methodology, results, how-to-retrain
+- `models/recommender_v1.lgb.txt` — saved trained model
+- `reports/recommender_v1.json` + `reports/recommender_v1/*.png` — metrics & plots
 
-**Phase 6 starts next session: brawler-pick recommendation model.** Required reading before any modeling work: [`docs/analytics-notes.md`](../docs/analytics-notes.md). It covers the schema, data caveats (especially the team-result bug — filter `battle_time_iso >= '2026-05-03T01:00:00Z'`), existing baselines (`models.py::score_brawlers`, matchup/synergy matrices), problem framing, and starting points.
+### Inference scenarios — all covered
+- `rank_brawlers_for_map(model, mode, map, train_df=...)` — pre-draft tier list
+- `complete_team(model, my_team, opp_team, ...)` — mid-draft completion
+- `last_pick(model, my_partial_team, opp_team, ...)` — end-of-draft
 
-Deferred / parallel tracks:
-1. **Cloudflare R2 nightly backups** — free 10 GB tier, `sqlite3 .backup` → zstd → rclone copyto. Protects against droplet failure. ~15 min when wanted.
-2. **Country diversity in seeding** — currently global-only; adding US/KR/BR/JP rankings could broaden meta coverage.
-3. **First-month observation** — let the three timers run for ~30 days, then revisit cadence/limits.
+## Next Steps (Phase 6 v2 candidates, no order yet)
 
-## Completed
-- Droplet provisioned, hardened, deployed (DEC-007)
-- Git deploy active (droplet has its own deploy key); updates via `git pull` (DEC-008)
-- 6h systemd timer for bulk crawler running
-- Pinned-tags crawler + 1h timer (script + tags file ready, systemd unit not yet installed on droplet)
-- Analytics precompute + 1h timer with 45 min watchdog (script + dashboard refactor ready, systemd unit not yet installed on droplet)
-- Dashboard reads cached JSON for instant load; shows cache age + compute time in header
-- `--remote-cache HOST` flag in `scripts/dashboard.py` auto-rsyncs the cache from the droplet so the dashboard runs entirely on local laptop without any DB transfer (cache is the only thing needed)
+1. **Rolling-window retrain**: `train-recommender.py --cutoff $(date -d '30 days ago' +%Y-%m-%d)` once per month; compare to full-history model. Direct meta-drift mitigation.
+2. **Interaction features for LogReg**: brawler × map, brawler × mode crosses → cheap inference.
+3. **Calibration on temporal splits** — verify Brier/log-loss hold up out-of-time, especially on release-meta brawlers (DAMIAN being the canonical example).
+4. **Per-tier conditioning**: stratify training by ranked tier (Bronze..Masters) so the recommendation respects skill level. Currently mean-trophy is a coarse proxy.
+5. **Star Power / Hyper Charge ingestion** (much bigger): they're not in `battlelog`; needs a periodic profile snapshot to attribute "this brawler had X at battle time T". Separate design.
 
-## Deferred (post-Phase-1)
-- Public dashboard via Cloudflare Tunnel + Pages frontend (only when actually wanted)
-- Postgres migration (only if/when SQLite stops fitting; `pgloader` makes it a 1-command job)
-- Trophy-range segmentation, CSV/JSON exports of analytics
-- More profiles backfill, country diversity (US/KR/BR/JP rankings) — easy once cadence is observed
+## Deferred / parallel tracks (unchanged)
+
+1. Cloudflare R2 nightly backups
+2. Country diversity in seeding (US/KR/BR/JP rankings)
+3. First-month observation of the three timers
+4. Public dashboard via Cloudflare Tunnel
+5. Postgres migration (only if SQLite stops fitting)
+
+## Important caveats inherited
+
+- **DEC-010**: legacy team-result bug is not recoverable. Recommender uses strict post-2026-05-03 filter. Don't try to backfill the legacy data again.
+- **Release-meta inflation**: DAMIAN (id 16000104, newest brawler) has 64.5% raw WR over 41k games. Model recommends DAMIAN with extreme confidence. This reflects the live meta, not a model bug, but cap your trust in `P(win) > 0.85` predictions.
+- **Sample window**: clean post-fix data is concentrated in 2026-05-03..2026-05-05. Real "month N → month N+1" temporal evaluation needs to wait ~30 days for enough disjoint windows; the harness handles this without code changes.
+
+## DB state on local
+
+- Path: `/media/lin/disk2/brawlstar-agent/data/brawlstars.db` (~970 MB)
+- Synced 2026-05-04 19:something UTC
+- Refresh before major retrains: `rsync -avz --progress brawl:brawlstar-agent/data/brawlstars.db data/brawlstars.db`

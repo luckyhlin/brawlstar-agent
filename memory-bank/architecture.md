@@ -14,6 +14,13 @@
 │   ├── analytics.py            # Win rate queries (brawler, combo, matchup, synergy)
 │   ├── models.py               # Statistical baselines: Wilson CI, tier-adjusted WR, score_brawlers
 │   ├── dashboard_data.py       # Shared analytics collection + cache read/write (used by dashboard + precompute cron)
+│   ├── recommender/            # Phase-6 brawler-pick recommendation models (Session 8)
+│   │   ├── dataset.py          # Clean-window loader + perspective-doubling + splits + name resolver
+│   │   ├── features.py         # TeamFeaturizer (sparse + dense modes for sklearn / LGBM)
+│   │   ├── baselines.py        # Global / Mode / ModeMap Wilson-CI baselines
+│   │   ├── team_model.py       # LogRegTeamModel + LGBMTeamModel + evaluate + save/load
+│   │   ├── inference.py        # rank_brawlers_for_map / complete_team / last_pick
+│   │   └── cv.py               # Sliding temporal-fold harness
 │   ├── capture.py              # Frame extraction, video reading
 │   ├── crop.py                 # Auto-detect + batch crop game region
 │   ├── perception.py           # Color analysis, template matching, MSER
@@ -35,7 +42,9 @@
 │   ├── collect-pinned.py       # CLI: pinned-tags crawler (every 1h on droplet, reads data/pinned_tags.txt)
 │   ├── precompute-analytics.py # CLI: writes data/analytics_cache.json (every 1h on droplet, with 45 min watchdog)
 │   ├── analyze-battles.py      # CLI: run analytics queries on collected data
-│   └── dashboard.py            # Local web dashboard; --remote-cache HOST rsyncs cache from droplet on launch
+│   ├── dashboard.py            # Local web dashboard; --remote-cache HOST rsyncs cache from droplet on launch
+│   ├── train-recommender.py    # End-to-end train + eval; --cutoff makes it re-runnable monthly
+│   └── analyze-recommender.py  # Plots, feature importance, DAMIAN deep-dive from saved report
 ├── capture/
 │   ├── clips/                  # Downloaded YouTube videos
 │   ├── frames/                 # Extracted frames + review manifests per clip
@@ -45,16 +54,25 @@
 │   ├── character_refs/         # 200 brawler portraits + brawlers_index.json
 │   └── perception/             # Pipeline outputs (calibration, ocr, summary)
 ├── data/
-│   └── brawlstars.db           # SQLite: battles, players, brawlers (git-ignored)
+│   ├── brawlstars.db           # SQLite: battles, players, brawlers (git-ignored)
+│   ├── pinned_tags.txt         # Pinned crawler input (git-ignored)
+│   └── analytics_cache.json    # Pre-computed dashboard cache (git-ignored)
 ├── emulator/                   # Android SDK, AVD, Genymotion (legacy)
-├── notebooks/                  # Jupyter notebooks
-├── models/                     # Future: trained models
+├── notebooks/
+│   └── recommender_v1.ipynb    # Executed companion to docs/recommender-v1.md
+├── models/
+│   ├── recommender_v1.lgb.txt  # Trained LightGBM (git-ignored via *.bin et al.)
+│   └── recommender_v1.meta.json
+├── reports/
+│   ├── recommender_v1.json     # Latest train+eval metrics
+│   └── recommender_v1/         # Plots and DAMIAN deep-dive
 ├── logs/                       # Pipeline logs
 └── docs/
     ├── data-sources.md         # Video/image data sources guide
     ├── brawlstars-api.md       # Full API reference (7 endpoints)
     ├── deployment.md           # Fresh-VPS deploy runbook (DigitalOcean)
     ├── analytics-notes.md      # Handoff guide for ML/analytics on the battle data
+    ├── recommender-v1.md       # Phase-6 v1 methodology, results, and how-to-retrain
     └── api-examples/           # Live API responses (git-ignored)
 ```
 

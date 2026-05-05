@@ -27,6 +27,7 @@ models/*.pth
 models/*.onnx
 models/*.bin
 models/*.h5
+models/*.lgb.txt
 *.pkl
 *.npy
 

@@ -25,6 +25,22 @@
   - Option C: contrastive embeddings (portrait → in-game matching)
   - All require labeled training data (brawler crops with identity labels)
 
+## DEC-010: Legacy Team-Result Bug Is Not Recoverable; Use Strict Post-Fix Filter (2026-05-04)
+
+`docs/analytics-notes.md` originally suggested that the team-result bug fixed in `dde58a4` could be detected and "fixed" via the invariant "exactly one team has `result='victory'` and one has `'defeat'`". That heuristic does not work.
+
+The bug, restated precisely: pre-fix, `db.py::_insert_battle_players` always assigned `battle.result` to `team_index=0` and the inverse to `team_index=1`. The fetched player can be on either team, so when they were on team 1 the labels were *swapped between teams*. **The swap preserves the invariant** — exactly one team still has `'victory'` and one `'defeat'`, just on the wrong teams.
+
+Empirical confirmation in the local DB: 99.1% of pre-fix battles satisfy the 1W+1L invariant (vs 95.8% post-fix; the small post-fix anomaly rate is partial inserts and re-fetches, not the bug). If the invariant were diagnostic, pre-fix would show ~50% bug rate.
+
+Other potential signals also fail:
+- `trophy_change` is stored on `team_index=0`'s first player but reflects the *fetched* player's trophy delta. Pre-fix and post-fix this attribution looks identical from the stored row.
+- We do not store `fetched_for_tag`, so there's no way to retroactively compute which team got the swap.
+
+**Decision**: every recommender-pipeline query filters by `battle_time_iso >= '2026-05-03T01:00:00Z'`. This is the `CLEAN_CUTOFF_ISO` constant in `src/brawlstar_agent/recommender/dataset.py`. Do not attempt to use legacy battles for training or for evaluation; the labels are silently wrong on roughly half of them.
+
+`docs/analytics-notes.md` should be updated to reflect this; until then DEC-010 supersedes its "label-flip-detection" suggestion.
+
 ## DEC-006: API-Based Battle Analytics Pipeline
 - CV-based brawler identification is hard (needs labeled data, training, etc.)
 - Official API gives structured battle data directly: who played what brawler, win/loss, mode, map

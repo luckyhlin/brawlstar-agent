@@ -1,0 +1,148 @@
+{
+  "name": "DAMIAN",
+  "support": 41134,
+  "overall_win_rate": 0.6450138571498031,
+  "trophy_mean_when_played": 1366.3546619989952,
+  "per_mode": [
+    {
+      "mode": "brawlBall",
+      "n": 26660,
+      "wr": 0.6611,
+      "tro": 1364.4833
+    },
+    {
+      "mode": "gemGrab",
+      "n": 4204,
+      "wr": 0.5485,
+      "tro": 993.6822
+    },
+    {
+      "mode": "siege",
+      "n": 3226,
+      "wr": 0.6578,
+      "tro": 1699.6873
+    },
+    {
+      "mode": "bounty",
+      "n": 2590,
+      "wr": 0.5714,
+      "tro": 918.8595
+    },
+    {
+      "mode": "knockout",
+      "n": 2414,
+      "wr": 0.7009,
+      "tro": 1731.3692
+    },
+    {
+      "mode": "basketBrawl",
+      "n": 942,
+      "wr": 0.5924,
+      "tro": 1984.2038
+    },
+    {
+      "mode": "hotZone",
+      "n": 780,
+      "wr": 0.6692,
+      "tro": 1493.2248
+    },
+    {
+      "mode": "wipeout",
+      "n": 250,
+      "wr": 0.832,
+      "tro": 1846.984
+    }
+  ],
+  "top15_by_winrate": [
+    {
+      "brawler_id": 16000104,
+      "n": 41320,
+      "wr": 0.6449,
+      "name": "DAMIAN"
+    },
+    {
+      "brawler_id": 16000090,
+      "n": 1208,
+      "wr": 0.644,
+      "name": "OLLIE"
+    },
+    {
+      "brawler_id": 16000101,
+      "n": 1394,
+      "wr": 0.6212,
+      "name": "GLOWBERT"
+    },
+    {
+      "brawler_id": 16000053,
+      "n": 1750,
+      "wr": 0.6206,
+      "name": "LOLA"
+    },
+    {
+      "brawler_id": 16000100,
+      "n": 1526,
+      "wr": 0.6121,
+      "name": "GIGI"
+    },
+    {
+      "brawler_id": 16000058,
+      "n": 1296,
+      "wr": 0.5988,
+      "name": "BONNIE"
+    },
+    {
+      "brawler_id": 16000091,
+      "n": 4300,
+      "wr": 0.5926,
+      "name": "LUMI"
+    },
+    {
+      "brawler_id": 16000093,
+      "n": 1310,
+      "wr": 0.5908,
+      "name": "JAE-YONG"
+    },
+    {
+      "brawler_id": 16000087,
+      "n": 2160,
+      "wr": 0.5889,
+      "name": "JUJU"
+    },
+    {
+      "brawler_id": 16000086,
+      "n": 4500,
+      "wr": 0.5769,
+      "name": "SHADE"
+    },
+    {
+      "brawler_id": 16000096,
+      "n": 1062,
+      "wr": 0.5744,
+      "name": "TRUNK"
+    },
+    {
+      "brawler_id": 16000039,
+      "n": 20462,
+      "wr": 0.5738,
+      "name": "COLETTE"
+    },
+    {
+      "brawler_id": 16000072,
+      "n": 1832,
+      "wr": 0.5731,
+      "name": "PEARL"
+    },
+    {
+      "brawler_id": 16000097,
+      "n": 11914,
+      "wr": 0.564,
+      "name": "MINA"
+    },
+    {
+      "brawler_id": 16000027,
+      "n": 5482,
+      "wr": 0.5582,
+      "name": "8-BIT"
+    }
+  ]
+}

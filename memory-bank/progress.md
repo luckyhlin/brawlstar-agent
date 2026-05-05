@@ -2,9 +2,9 @@
 
 ## Current Phase
 
-**Production deploy**: Crawler is now hosted on a DigitalOcean droplet with a 6-hour systemd timer. Collection runs autonomously, accumulating fresh battle data without an always-on home machine. Local machine remains the dev environment; droplet pulls code via git (DEC-008).
+**Phase 6 v1 shipped**: brawler-pick recommender trained on clean post-fix data. LightGBM team-completion model achieves AUC 0.730 (random) / 0.704 (temporal) — beats ModeMap baseline by ~3 AUC points. Inference helpers cover all three user scenarios (pre-draft tier list, mid-draft completion, last pick).
 
-Current dataset: **160,764 battles** across 11 modes, **553k+ player tags**, time range now caught up to **2026-05-04**.
+**Production crawl** continues on DigitalOcean droplet. Local DB now has **210k battles, latest 2026-05-05, 78k post-fix clean** (rsync'd this session).
 
 ## Done
 
@@ -92,6 +92,29 @@ Current dataset: **160,764 battles** across 11 modes, **553k+ player tags**, tim
 - Documented IP semantics (anchor IPv4 = outbound, reserved IPv4 = inbound, both WAN) and SSH config alias pattern in deployment.md.
 - Verified the dashboard refactor compiles cleanly; cache helpers (`read_cache`, `write_cache`) imported successfully.
 - Added `--remote-cache HOST` flag to `scripts/dashboard.py`: auto-rsyncs cache from a remote SSH host before launching. Makes the local-laptop workflow trivial — no SSH tunnel, no DB sync, just `uv run python scripts/dashboard.py --remote-cache brawl`. Falls back to local cache if rsync fails (offline-tolerant).
+
+### Session 8 — 2026-05-04 — Brawler-pick recommender v1 (Phase 6 kickoff)
+- Rsync'd droplet DB to local: 210k battles, latest 2026-05-05, **78k clean post-fix**.
+- Tried to implement the legacy label-flip detector floated in `analytics-notes.md`. **It doesn't work** — the bug swaps team labels symmetrically and preserves the "1W+1L per battle" invariant. Recorded as **DEC-010**: legacy data is unusable for training and evaluation; strict post-2026-05-03 filter is the only path.
+- Built `src/brawlstar_agent/recommender/` subpackage:
+  - `dataset.py`: clean-window loader, both-perspectives expansion, temporal/random splits, `load_brawler_names` that falls back to `battle_players` for new brawlers (the `brawlers` table didn't have DAMIAN id 16000104).
+  - `features.py`: `TeamFeaturizer` with sparse and dense modes (sklearn vs LGBM).
+  - `baselines.py`: Global / Mode / ModeMap Wilson-CI baselines with the same `predict_proba` interface as the trained models.
+  - `team_model.py`: `LogRegTeamModel` + `LGBMTeamModel` + `evaluate` + `save_model` / `load_model`.
+  - `inference.py`: `rank_brawlers_for_map` (Monte Carlo over empirical teammates), `complete_team`, `last_pick`.
+  - `cv.py`: sliding temporal-fold harness + `evaluate_models_on_folds`.
+- Wrote `scripts/train-recommender.py` (re-runnable with `--cutoff` for the transferable-algorithm property) and `scripts/analyze-recommender.py` (plots + DAMIAN deep-dive).
+- Built `notebooks/recommender_v1.ipynb` (executed, 116 KB with outputs baked in) and `docs/recommender-v1.md` (full methodology + how-to-retrain).
+- **Random-split results** (n_test=21k):
+  - Global Wilson AUC=0.655 → ModeMap AUC=0.697 → LightGBM **AUC=0.730**
+  - LogReg with multi-hot teams underperforms ModeMap (0.661 vs 0.697); needs interaction features to compete.
+- **Temporal CV** (4 sub-daily folds, ~2 days clean data): LightGBM AUC=0.704; ModeMap drops to 0.666 from 0.697 (random) — exactly the gap a temporal-vs-random comparison should expose.
+- **Findings noted in doc**:
+  - Release-meta inflation: DAMIAN (newest brawler, id 16000104) has **64.5% raw WR over 41k appearances** — most-played AND highest-WR brawler. Model recommends DAMIAN with extreme confidence; this is meta truth, not a model bug, but worth flagging for inference robustness.
+  - LogReg without interaction features can't beat the ModeMap aggregate; tree models (LGBM) capture brawler×map and brawler-pair interactions for free.
+  - Brier score 0.21 on LightGBM suggests reasonably calibrated probabilities for a v1.
+- Added deps: `scikit-learn`, `lightgbm`, `pandas`, `pyarrow` via `uv add`.
+- Per-machine `UV_CACHE_DIR=/media/lin/disk2/.uv-cache` is owned by root locally; worked around by setting `UV_CACHE_DIR=/media/lin/disk2/brawlstar-agent/.uv-cache-local` for this session (gitignored).
 
 ### Session 6 — 2026-05-03 — Production deploy on DigitalOcean
 - Provisioned DigitalOcean Basic droplet ($6/mo, Ubuntu 24.04 LTS, US region) — DEC-007
