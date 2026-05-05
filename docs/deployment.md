@@ -338,10 +338,13 @@ cat > ~/brawlstar-agent/data/pinned_tags.txt <<'EOF'
 # Personal account
 #RYY9LJVL
 
-# Add other tags under inspection below, one per line, e.g.:
-# #ABC123
+# Friends / players under inspection (inline # comments allowed):
+# #280YJ0R80   # PolyMentos
+# #2GY9CCUQR0  # psyduck
 EOF
 ```
+
+> **Tags vs. watched-player display**: this same file feeds two consumers — the pinned-tags crawler (`scripts/collect-pinned.py`) and the dashboard's "Watched Players" tab (`dashboard_data.py::collect_all_data`). The `MAJOR_ACCOUNT_TAG` (from `api.env`) gets the dedicated "My Data" tab; every *other* tag in this file shows up under "Watched Players" with a per-player subtab. So adding a friend's tag here gives you both periodic crawling AND a view in the dashboard with one edit.
 
 Then the systemd unit pair:
 

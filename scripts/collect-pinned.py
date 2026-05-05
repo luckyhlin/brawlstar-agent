@@ -7,16 +7,9 @@ care about (your own account, friends, players under inspection) effectively
 never get fetched because they're far down the trophy ranking.
 
 This script complements the bulk crawler by ALWAYS crawling tags listed in
-`data/pinned_tags.txt` (gitignored). Intended to run on a separate, more
-frequent systemd timer (e.g., every 1 hour) alongside the every-6-hours bulk
-crawler.
-
-Tags file format (data/pinned_tags.txt):
-
-    # Comments start with '# ' (hash space).
-    # One player tag per line, in the form #ABCDEFGH.
-    #RYY9LJVL
-    #ABC123
+`data/pinned_tags.txt`. The file is gitignored and the parser is shared with
+the dashboard (see src/brawlstar_agent/collector.py::load_pinned_tags for
+the format spec).
 
 If the file is missing or empty, this script logs and exits with status 0.
 """
@@ -30,26 +23,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from brawlstar_agent.api_client import APIError, BrawlStarsAPI
+from brawlstar_agent.collector import PINNED_TAGS_FILE, load_pinned_tags
 from brawlstar_agent.db import BrawlDB
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PINNED_TAGS_FILE = PROJECT_ROOT / "data" / "pinned_tags.txt"
-
 log = logging.getLogger("collect-pinned")
-
-
-def load_pinned_tags() -> list[str]:
-    """Read pinned_tags.txt; return list of player tags. Comments start with '# '."""
-    if not PINNED_TAGS_FILE.exists():
-        return []
-    tags: list[str] = []
-    for raw in PINNED_TAGS_FILE.read_text().splitlines():
-        line = raw.strip()
-        if not line or line.startswith("# "):
-            continue
-        if line.startswith("#") and " " not in line:
-            tags.append(line)
-    return tags
 
 
 def main() -> int:

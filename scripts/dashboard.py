@@ -252,6 +252,7 @@ tr:hover td {{ background: rgba(255,255,255,0.03); }}
         <button class="tab" data-tab="matchups">Matchups</button>
         <button class="tab" data-tab="synergies">Synergies</button>
         <button class="tab" data-tab="mydata">My Data</button>
+        <button class="tab" data-tab="watched">Watched Players</button>
     </div>
 
     <div id="brawlers" class="tab-content active">
@@ -289,16 +290,13 @@ tr:hover td {{ background: rgba(255,255,255,0.03); }}
     </div>
 
     <div id="mydata" class="tab-content">
-        <div id="myProfile"></div>
-        <div class="section-label" style="margin-top:16px">My Brawler Stats</div>
-        <div class="brawler-grid" id="myBrawlerGrid"></div>
-        <div class="section-label" style="margin-top:16px">Win Rate by Mode</div>
-        <div id="myModeStats" style="margin-bottom:16px"></div>
-        <div class="section-label" style="margin-top:16px">Battle Log <span style="font-weight:400" id="myBattleCount"></span></div>
-        <div class="mode-filter" id="myLogFilter"></div>
-        <div class="table-wrap" style="max-height:800px"><table id="myLogTable"><thead><tr>
-            <th>Time</th><th>Mode</th><th>Map</th><th>Brawler</th><th>Result</th><th>Teammates</th><th>Opponents</th>
-        </tr></thead><tbody></tbody></table></div>
+        <div id="myDataContainer"></div>
+    </div>
+
+    <div id="watched" class="tab-content">
+        <div class="section-label">Player</div>
+        <div class="mode-filter" id="watchedSubtabs"></div>
+        <div id="watchedContainer" style="margin-top:12px"></div>
     </div>
 </div>
 
@@ -630,30 +628,47 @@ function renderSynergyTable(filter) {{
 renderSynergyTable();
 document.getElementById('synergySearch').addEventListener('input', e => renderSynergyTable(e.target.value));
 
-// My Data tab
-const MY = DATA.my_data;
-let myLogMode = 'all';
-
-function renderMyData() {{
-    if (!MY) {{
-        document.getElementById('myProfile').innerHTML = '<div style="padding:20px;color:var(--text-dim)">No personal data found. Make sure MAJOR_ACCOUNT_TAG is set in api.env and the battlelog has been fetched.</div>';
+// Per-player stats rendering — shared by the My Data tab and the Watched Players tab.
+// Each call writes a self-contained block (profile, brawlers, modes, battle log) into
+// `container`, with its own log-filter state captured in a closure so different players'
+// log filters don't interfere with each other.
+function renderPlayerStats(player, container, opts) {{
+    opts = opts || {{}};
+    const emptyMsg = opts.emptyMessage || 'No data for this player yet.';
+    if (!player) {{
+        container.innerHTML = `<div style="padding:20px;color:var(--text-dim)">${{emptyMsg}}</div>`;
         return;
     }}
 
-    // Profile card
-    document.getElementById('myProfile').innerHTML = `
+    container.innerHTML = `
         <div class="stats-bar">
-            <div class="stat"><div class="stat-val">${{MY.name}}</div><div class="stat-label">${{MY.tag}}</div></div>
-            <div class="stat"><div class="stat-val">${{(MY.trophies || 0).toLocaleString()}}</div><div class="stat-label">Trophies</div></div>
-            <div class="stat"><div class="stat-val">${{(MY.highest_trophies || MY.trophies || 0).toLocaleString()}}</div><div class="stat-label">Highest</div></div>
-            <div class="stat"><div class="stat-val">${{MY.exp_level || '-'}}</div><div class="stat-label">Level</div></div>
-            <div class="stat"><div class="stat-val">${{MY.club || '-'}}</div><div class="stat-label">Club</div></div>
-            <div class="stat"><div class="stat-val">${{MY.battle_count}}</div><div class="stat-label">Tracked Battles</div></div>
-        </div>`;
+            <div class="stat"><div class="stat-val">${{player.name || '-'}}</div><div class="stat-label">${{player.tag}}</div></div>
+            <div class="stat"><div class="stat-val">${{(player.trophies || 0).toLocaleString()}}</div><div class="stat-label">Trophies</div></div>
+            <div class="stat"><div class="stat-val">${{(player.highest_trophies || player.trophies || 0).toLocaleString()}}</div><div class="stat-label">Highest</div></div>
+            <div class="stat"><div class="stat-val">${{player.exp_level || '-'}}</div><div class="stat-label">Level</div></div>
+            <div class="stat"><div class="stat-val">${{player.club || '-'}}</div><div class="stat-label">Club</div></div>
+            <div class="stat"><div class="stat-val">${{player.battle_count}}</div><div class="stat-label">Tracked Battles</div></div>
+        </div>
+        <div class="section-label" style="margin-top:16px">Brawler Stats</div>
+        <div class="brawler-grid pp-brawlers"></div>
+        <div class="section-label" style="margin-top:16px">Win Rate by Mode</div>
+        <div class="pp-modes" style="margin-bottom:16px"></div>
+        <div class="section-label" style="margin-top:16px">Battle Log <span style="font-weight:400" class="pp-bcount"></span></div>
+        <div class="mode-filter pp-logfilter"></div>
+        <div class="table-wrap" style="max-height:800px"><table class="pp-logtable"><thead><tr>
+            <th>Time</th><th>Mode</th><th>Map</th><th>Brawler</th><th>Result</th><th>Teammates</th><th>Opponents</th>
+        </tr></thead><tbody></tbody></table></div>
+    `;
 
-    // Brawler stats grid
-    const grid = document.getElementById('myBrawlerGrid');
-    grid.innerHTML = (MY.brawler_stats || []).map(r => {{
+    if (player.battle_count === 0) {{
+        container.querySelector('.pp-brawlers').innerHTML = `<div style="padding:12px;color:var(--text-dim)">No battles in DB yet for this player. Wait for the next pinned-tags crawl (~hourly).</div>`;
+        container.querySelector('.pp-bcount').textContent = '(0 tracked)';
+        return;
+    }}
+
+    // Brawler grid
+    const brawGrid = container.querySelector('.pp-brawlers');
+    brawGrid.innerHTML = (player.brawler_stats || []).map(r => {{
         const url = portraitUrl(r.brawler_name);
         const imgTag = url ? `<img src="${{url}}" alt="${{r.brawler_name}}">` : `<div style="width:40px;height:40px;border-radius:50%;background:var(--border)"></div>`;
         return `<div class="brawler-card">
@@ -667,9 +682,9 @@ function renderMyData() {{
     }}).join('');
 
     // Mode stats
-    const modeDiv = document.getElementById('myModeStats');
+    const modeDiv = container.querySelector('.pp-modes');
     modeDiv.innerHTML = '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
-        (MY.mode_stats || []).map(r => `
+        (player.mode_stats || []).map(r => `
             <div class="brawler-card" style="min-width:140px">
                 <div class="brawler-info">
                     <div class="brawler-name">${{prettyMode(r.mode)}}</div>
@@ -679,60 +694,97 @@ function renderMyData() {{
             </div>`
         ).join('') + '</div>';
 
-    document.getElementById('myBattleCount').textContent = `(${{MY.battle_count}} tracked)`;
-    renderMyLogFilter();
-    renderMyLog();
+    container.querySelector('.pp-bcount').textContent = `(${{player.battle_count}} tracked)`;
+
+    // Per-instance log state + renderers
+    let logMode = 'all';
+    const filterEl = container.querySelector('.pp-logfilter');
+    const tbody = container.querySelector('.pp-logtable tbody');
+
+    function renderFilter() {{
+        const modes = ['all', ...new Set((player.battle_log || []).map(b => b.mode))];
+        filterEl.innerHTML = modes.map(m =>
+            `<button class="mode-btn ${{m === logMode ? 'active' : ''}}" data-mode="${{m}}">${{m === 'all' ? 'All' : prettyMode(m)}}</button>`
+        ).join('');
+        filterEl.querySelectorAll('.mode-btn').forEach(btn => {{
+            btn.addEventListener('click', () => {{
+                logMode = btn.dataset.mode;
+                renderFilter();
+                renderLog();
+            }});
+        }});
+    }}
+
+    function renderLog() {{
+        let log = player.battle_log || [];
+        if (logMode !== 'all') log = log.filter(b => b.mode === logMode);
+        tbody.innerHTML = log.map(b => {{
+            const time = b.time ? b.time.slice(0, 16).replace('T', ' ') : '?';
+            const resultCls = b.result === 'victory' ? 'wr-high' : b.result === 'defeat' ? 'wr-low' : 'wr-mid';
+            const star = b.star_player ? ' ⭐' : '';
+            const dur = b.duration ? ` (${{b.duration}}s)` : '';
+            const tc = b.trophy_change ? ` ${{b.trophy_change > 0 ? '+' : ''}}${{b.trophy_change}}` : '';
+            const tmStr = (b.teammates || []).map(t => `${{portraitImg(t.brawler)}}${{t.brawler}}`).join(', ') || '-';
+            const opStr = (b.opponents || []).map(o => `${{portraitImg(o.brawler)}}${{o.brawler}}`).join(', ') || '-';
+            return `<tr>
+                <td style="white-space:nowrap;font-size:0.85em">${{time}}</td>
+                <td>${{prettyMode(b.mode)}}</td>
+                <td style="font-size:0.85em">${{b.map || '-'}}</td>
+                <td>${{portraitImg(b.brawler)}}${{b.brawler}}</td>
+                <td><span class="${{resultCls}}" style="font-weight:600">${{b.result}}${{star}}${{tc}}</span>${{dur}}</td>
+                <td style="font-size:0.85em">${{tmStr}}</td>
+                <td style="font-size:0.85em">${{opStr}}</td>
+            </tr>`;
+        }}).join('');
+    }}
+
+    renderFilter();
+    renderLog();
 }}
 
-function renderMyLogFilter() {{
-    if (!MY) return;
-    const modes = ['all', ...new Set(MY.battle_log.map(b => b.mode))];
-    const container = document.getElementById('myLogFilter');
-    container.innerHTML = modes.map(m =>
-        `<button class="mode-btn ${{m === myLogMode ? 'active' : ''}}" data-mode="${{m}}">${{m === 'all' ? 'All' : prettyMode(m)}}</button>`
-    ).join('');
-    container.querySelectorAll('.mode-btn').forEach(btn => {{
+// My Data tab
+function renderMyData() {{
+    renderPlayerStats(
+        DATA.my_data,
+        document.getElementById('myDataContainer'),
+        {{ emptyMessage: 'No personal data found. Make sure MAJOR_ACCOUNT_TAG is set in api.env and the battlelog has been fetched.' }}
+    );
+}}
+
+// Watched Players tab — subtab navigation between watched players
+let watchedSelected = 0;
+function renderWatchedTab() {{
+    const list = DATA.watched_data || [];
+    const subtabs = document.getElementById('watchedSubtabs');
+    const container = document.getElementById('watchedContainer');
+
+    if (list.length === 0) {{
+        subtabs.innerHTML = '';
+        container.innerHTML = '<div style="padding:20px;color:var(--text-dim)">No watched players configured. Add tags to <code>data/pinned_tags.txt</code> on the droplet (excluding your MAJOR_ACCOUNT_TAG which appears under My Data).</div>';
+        return;
+    }}
+
+    subtabs.innerHTML = list.map((p, i) => {{
+        const label = p.name || p.tag;
+        const trophies = p.trophies != null ? ` · ${{p.trophies.toLocaleString()}}🏆` : '';
+        return `<button class="mode-btn ${{i === watchedSelected ? 'active' : ''}}" data-idx="${{i}}">${{label}}${{trophies}}</button>`;
+    }}).join('');
+    subtabs.querySelectorAll('.mode-btn').forEach(btn => {{
         btn.addEventListener('click', () => {{
-            myLogMode = btn.dataset.mode;
-            renderMyLogFilter();
-            renderMyLog();
+            watchedSelected = parseInt(btn.dataset.idx, 10);
+            renderWatchedTab();
         }});
     }});
-}}
 
-function renderMyLog() {{
-    if (!MY) return;
-    let log = MY.battle_log;
-    if (myLogMode !== 'all') log = log.filter(b => b.mode === myLogMode);
-
-    const tbody = document.querySelector('#myLogTable tbody');
-    tbody.innerHTML = log.map(b => {{
-        const time = b.time ? b.time.slice(0, 16).replace('T', ' ') : '?';
-        const resultCls = b.result === 'victory' ? 'wr-high' : b.result === 'defeat' ? 'wr-low' : 'wr-mid';
-        const star = b.star_player ? ' ⭐' : '';
-        const dur = b.duration ? ` (${{b.duration}}s)` : '';
-        const tc = b.trophy_change ? ` ${{b.trophy_change > 0 ? '+' : ''}}${{b.trophy_change}}` : '';
-
-        const tmStr = (b.teammates || []).map(t =>
-            `${{portraitImg(t.brawler)}}${{t.brawler}}`
-        ).join(', ') || '-';
-        const opStr = (b.opponents || []).map(o =>
-            `${{portraitImg(o.brawler)}}${{o.brawler}}`
-        ).join(', ') || '-';
-
-        return `<tr>
-            <td style="white-space:nowrap;font-size:0.85em">${{time}}</td>
-            <td>${{prettyMode(b.mode)}}</td>
-            <td style="font-size:0.85em">${{b.map || '-'}}</td>
-            <td>${{portraitImg(b.brawler)}}${{b.brawler}}</td>
-            <td><span class="${{resultCls}}" style="font-weight:600">${{b.result}}${{star}}${{tc}}</span>${{dur}}</td>
-            <td style="font-size:0.85em">${{tmStr}}</td>
-            <td style="font-size:0.85em">${{opStr}}</td>
-        </tr>`;
-    }}).join('');
+    renderPlayerStats(
+        list[watchedSelected],
+        container,
+        {{ emptyMessage: 'No data for this player yet.' }}
+    );
 }}
 
 renderMyData();
+renderWatchedTab();
 </script>
 </body>
 </html>"""

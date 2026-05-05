@@ -7,11 +7,48 @@ new player tags from discovered battles.
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from .api_client import APIError, BrawlStarsAPI
 from .db import BrawlDB
 
 log = logging.getLogger(__name__)
+
+# Single source of truth for the pinned-tags file (shared by collect-pinned
+# crawler and the dashboard's watched-players tab).
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PINNED_TAGS_FILE = PROJECT_ROOT / "data" / "pinned_tags.txt"
+
+
+def load_pinned_tags() -> list[str]:
+    """Read player tags from data/pinned_tags.txt.
+
+    File format (gitignored, lives only on droplet & local data/):
+        # Comments start with '# ' (hash + space). Whole-line comments are skipped.
+        # One player tag per line, e.g.:
+        #RYY9LJVL                # Personal account
+        #280YJ0R80  # PolyMentos
+        #2GY9CCUQR0 # psyduck
+        #2CR92JQG92 # PolyMentosBB
+
+    Both whole-line comments AND inline comments (anything after the tag) are
+    supported. Returns a list of tags in file order; duplicates are deduped
+    while preserving first occurrence.
+    """
+    if not PINNED_TAGS_FILE.exists():
+        return []
+    tags: list[str] = []
+    seen: set[str] = set()
+    for raw in PINNED_TAGS_FILE.read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("# "):
+            continue
+        # First whitespace-separated token; everything after is treated as inline comment.
+        token = line.split(None, 1)[0]
+        if token.startswith("#") and len(token) >= 4 and token not in seen:
+            tags.append(token)
+            seen.add(token)
+    return tags
 
 
 class Collector:

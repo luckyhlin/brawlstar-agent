@@ -21,6 +21,7 @@ from typing import Any
 from dotenv import load_dotenv
 
 from .analytics import TROPHY_TIERS, BattleAnalytics
+from .collector import load_pinned_tags
 from .db import DEFAULT_DB_PATH
 from .models import RANKED_TIERS
 
@@ -87,6 +88,11 @@ def collect_all_data(db_path: str | Path) -> dict[str, Any]:
     my_tag = os.getenv("MAJOR_ACCOUNT_TAG", "")
     my_data = _collect_personal_data(a._conn, my_tag) if my_tag else None
 
+    log.info("Computing watched-player data from pinned_tags.txt...")
+    watched_tags = [t for t in load_pinned_tags() if t != my_tag]
+    watched_data = [_watched_player_entry(a._conn, t) for t in watched_tags]
+    log.info("  watched players: %d", len(watched_data))
+
     a.close()
 
     trophy_tiers = [{"name": n, "lo": lo, "hi": hi} for n, lo, hi in TROPHY_TIERS]
@@ -103,6 +109,51 @@ def collect_all_data(db_path: str | Path) -> dict[str, Any]:
         "matchups": matchups,
         "synergies": synergies,
         "my_data": my_data,
+        "watched_data": watched_data,
+    }
+
+
+def _watched_player_entry(conn: sqlite3.Connection, tag: str) -> dict:
+    """Build a watched-player entry. Always returns a dict with at least
+    {tag, name, battle_count, ...}, even when the tag has no battles in the
+    DB yet (e.g., newly added side accounts) so the dashboard can render an
+    empty-state card rather than skipping the player."""
+    full = _collect_personal_data(conn, tag)
+    if full:
+        return full
+
+    # No battles yet — fall back to whatever player profile exists.
+    player = conn.execute(
+        "SELECT tag, name, trophies, highest_trophies, exp_level, club_name "
+        "FROM players WHERE tag = ?",
+        (tag,),
+    ).fetchone()
+    if player:
+        return {
+            "tag": tag,
+            "name": player["name"],
+            "trophies": player["trophies"],
+            "highest_trophies": player["highest_trophies"],
+            "exp_level": player["exp_level"],
+            "club": player["club_name"],
+            "battle_count": 0,
+            "battle_log": [],
+            "brawler_stats": [],
+            "mode_stats": [],
+        }
+
+    # Tag not yet crawled at all (timer hasn't fired since it was added).
+    return {
+        "tag": tag,
+        "name": "(awaiting first crawl)",
+        "trophies": None,
+        "highest_trophies": None,
+        "exp_level": None,
+        "club": None,
+        "battle_count": 0,
+        "battle_log": [],
+        "brawler_stats": [],
+        "mode_stats": [],
     }
 
 
