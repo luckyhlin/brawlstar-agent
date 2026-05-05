@@ -45,6 +45,36 @@
   - DVC (data version control — git-like tracking for large files)
 - **No action now** — revisit when dataset quality justifies preservation
 
+## DEC-009: Remote = Routine/Periodic, Local = Interactive/Heavy (2026-05-04)
+
+Operating principle for deciding where any given workload runs:
+
+- **Droplet (remote)** is for **always-on, scheduled, predictable** work:
+  - Crawlers (`brawl-collect.timer`, `brawl-collect-pinned.timer`)
+  - Routine analytics precompute (`brawl-analytics.timer`)
+  - Backups (planned: nightly `pg_dump`-equivalent → R2)
+  - Anything that benefits from a stable IP whitelist + 24/7 uptime
+  - Resource ceiling: 1 GB RAM, 1 vCPU. If something needs more, it doesn't belong here.
+
+- **Local laptop (Lin's i7-12700H, 62 GB RAM, RTX 3060)** is for **interactive, exploratory, heavy-compute** work:
+  - Dashboard viewing (reads droplet's precomputed cache via `--remote-cache`)
+  - Ad-hoc SQL exploration (rsync DB to local, query freely)
+  - Jupyter notebooks, experimentation
+  - Future ML training (brawler classifier, embeddings) — GPU is here, not on droplet
+  - Code authoring (DEC-008 already established this for source code)
+
+Decision rule for any new workload: "Does it need to run unattended on a schedule?" → remote. "Does it need >1 GB RAM or interactive iteration?" → local.
+
+Edge cases:
+- Heavy one-off backfills: run on local (against rsync'd DB) and ship results back if needed.
+- New scheduled analytics queries: design them on local first, then move the script + add a systemd timer on remote.
+
+Artifacts that flow between the two:
+- Code: local → GitHub → droplet (`git pull`) — DEC-008
+- Cache JSON: droplet → local (`dashboard.py --remote-cache`) — DEC-009
+- DB (occasional): droplet → local (`rsync` for ad-hoc queries with `--no-cache`)
+- Backups: droplet → R2 (planned) — never touches local
+
 ## DEC-008: Local-Primary Workflow, Droplet Deploys via Git Pull (2026-05-03)
 - **Local machine = source of truth for code**. All edits happen in Cursor on local.
 - **Droplet = deploy target**. Receives updates via `git pull`. Never edit code on the droplet.

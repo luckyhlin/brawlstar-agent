@@ -7,6 +7,12 @@ Crawler is **deployed and running on a DigitalOcean droplet** (DEC-007) on a 6-h
 **Production droplet**: `lin@209.38.4.212` (reserved IP) / `64.23.171.86` (anchor / outbound IP)
 **DB on droplet**: `~/brawlstar-agent/data/brawlstars.db` — independent copy from local; the droplet is the source of truth for production collection.
 
+## Operating principle (DEC-009)
+
+- **Remote**: routine/periodic — crawlers, scheduled analytics precompute, backups
+- **Local**: interactive/heavy — dashboard, ad-hoc queries, ML training, exploration
+- Cache flows local from droplet via `dashboard.py --remote-cache`; DB rsync only for ad-hoc deep-dives
+
 ## What Works
 - **API client**: rate-limited (1-2 req/s), auth from api.env, retry with exponential backoff
 - **SQLite storage**: normalized schema, dedup by (battleTime + sorted tags), WAL mode
@@ -27,10 +33,13 @@ Crawler is **deployed and running on a DigitalOcean droplet** (DEC-007) on a 6-h
 - Dashboard: `scripts/dashboard.py` (local HTTP with portraits, 4 analysis tabs)
 
 ## Next Steps
-1. **Deploy session-7 changes to droplet** — install `brawl-collect-pinned.timer` + `brawl-analytics.timer`, create `data/pinned_tags.txt`, run first analytics precompute manually.
-2. **Cloudflare R2 nightly backups** — free 10 GB tier, `sqlite3 .backup` → zstd → rclone copyto. Protects against droplet failure.
-3. **First weekly observation** — let the timers run for ~7 days, then check growth rate, mode coverage, idle-player ratio. Tune `--battlelog-limit` and cadence if needed.
-4. **Backfill consideration** — pre-deploy battles in DB have inverted win/loss labels for some players (db.py team-result bug, fixed in dde58a4). Decide whether to delete + re-collect, or accept the historical data noise.
+
+**Phase 6 starts next session: brawler-pick recommendation model.** Required reading before any modeling work: [`docs/analytics-notes.md`](../docs/analytics-notes.md). It covers the schema, data caveats (especially the team-result bug — filter `battle_time_iso >= '2026-05-03T01:00:00Z'`), existing baselines (`models.py::score_brawlers`, matchup/synergy matrices), problem framing, and starting points.
+
+Deferred / parallel tracks:
+1. **Cloudflare R2 nightly backups** — free 10 GB tier, `sqlite3 .backup` → zstd → rclone copyto. Protects against droplet failure. ~15 min when wanted.
+2. **Country diversity in seeding** — currently global-only; adding US/KR/BR/JP rankings could broaden meta coverage.
+3. **First-month observation** — let the three timers run for ~30 days, then revisit cadence/limits.
 
 ## Completed
 - Droplet provisioned, hardened, deployed (DEC-007)

@@ -12,6 +12,8 @@
 │   ├── db.py                   # SQLite storage (schema, insert/dedup, queries)
 │   ├── collector.py            # Data collection orchestrator (seed → fetch → snowball)
 │   ├── analytics.py            # Win rate queries (brawler, combo, matchup, synergy)
+│   ├── models.py               # Statistical baselines: Wilson CI, tier-adjusted WR, score_brawlers
+│   ├── dashboard_data.py       # Shared analytics collection + cache read/write (used by dashboard + precompute cron)
 │   ├── capture.py              # Frame extraction, video reading
 │   ├── crop.py                 # Auto-detect + batch crop game region
 │   ├── perception.py           # Color analysis, template matching, MSER
@@ -29,8 +31,11 @@
 │   ├── crop-reviewed-frames.py # Export gameplay frames from manifests
 │   ├── run-perception.py       # Full perception pipeline runner
 │   ├── fetch-character-refs.py # Download brawler portraits from BrawlAPI
-│   ├── collect-battles.py      # CLI: collect battle data from API → SQLite
-│   └── analyze-battles.py      # CLI: run analytics queries on collected data
+│   ├── collect-battles.py      # CLI: bulk crawler (every 6h on droplet via systemd)
+│   ├── collect-pinned.py       # CLI: pinned-tags crawler (every 1h on droplet, reads data/pinned_tags.txt)
+│   ├── precompute-analytics.py # CLI: writes data/analytics_cache.json (every 1h on droplet, with 45 min watchdog)
+│   ├── analyze-battles.py      # CLI: run analytics queries on collected data
+│   └── dashboard.py            # Local web dashboard; --remote-cache HOST rsyncs cache from droplet on launch
 ├── capture/
 │   ├── clips/                  # Downloaded YouTube videos
 │   ├── frames/                 # Extracted frames + review manifests per clip
@@ -48,6 +53,8 @@
 └── docs/
     ├── data-sources.md         # Video/image data sources guide
     ├── brawlstars-api.md       # Full API reference (7 endpoints)
+    ├── deployment.md           # Fresh-VPS deploy runbook (DigitalOcean)
+    ├── analytics-notes.md      # Handoff guide for ML/analytics on the battle data
     └── api-examples/           # Live API responses (git-ignored)
 ```
 
@@ -62,19 +69,29 @@ YouTube → yt-dlp → capture/clips/*.mp4
   → run-perception.py → datasets/perception/ (calibration, ocr, characters)
 ```
 
-## API Battle Analytics Pipeline
+## API Battle Analytics Pipeline (production, on droplet)
 
 ```
-Rankings API → seed 200 global player tags → players table
+Rankings API → seed top global player tags → players table
   → for each tag: GET /players/{tag}/battlelog
   → normalize: 1 battle → battles row + 6 battle_players rows
   → snowball: discover new tags from opponents/teammates → players table
-  → dedup on (battleTime + sorted tags)
-  → analytics queries: brawler win rates, combo win rates, matchup matrix, synergy matrix
+  → dedup on (battleTime + sorted tags) — INSERT OR IGNORE on battle_id
+
+Three independent systemd timers run on the droplet (DEC-007):
+  brawl-collect.timer         every 6h    bulk crawler (top trophies, 1500/run, --collect-only)
+  brawl-collect-pinned.timer  every 1h    pinned tags from data/pinned_tags.txt
+  brawl-analytics.timer       every 1h    precompute → data/analytics_cache.json (45 min watchdog)
 ```
 
-DB: `data/brawlstars.db` (SQLite, WAL mode)
-Tables: brawlers, players, battles, battle_players, collection_log
+DB: `data/brawlstars.db` (SQLite, WAL mode), gitignored.
+Tables: brawlers, players, battles, battle_players, collection_log.
+
+**Local viewing**: `scripts/dashboard.py --remote-cache brawl` rsyncs the precomputed cache
+from the droplet and serves the HTML on `localhost:8765` — DB stays on droplet, no transfer
+needed for the read path. See `docs/deployment.md` "View the dashboard" for full details.
+
+**Data caveats** (read before training models): see `docs/analytics-notes.md`.
 
 ## Perception Pipeline (per frame)
 
