@@ -455,6 +455,96 @@ Numbers should tick up over time as scheduled runs accumulate.
 
 ---
 
+## 16. Optional: shell customizations (fish + zellij)
+
+The droplet works fine on stock bash + tmux. If you prefer fish + zellij interactively, you can layer them on top **without changing the login shell** — that's important because every script in this runbook, every `~/.bashrc` export, and every systemd unit assumes bash.
+
+State on droplet as of 2026-05-04:
+
+- Login shell: still `/bin/bash` (no `chsh`)
+- `~/.bashrc` still owns `UV_CACHE_DIR` and `BRAWL_API_KEY_VAR` exports
+- After the exports, an auto-exec snippet drops *interactive* sessions into fish
+- zellij installed at `/usr/local/bin/zellij`, available alongside tmux
+
+### Install
+
+```bash
+sudo apt install -y fish
+
+LATEST=$(curl -fsSL https://api.github.com/repos/zellij-org/zellij/releases/latest \
+  | grep -oP '"tag_name":\s*"\K[^"]+')
+curl -fsSL "https://github.com/zellij-org/zellij/releases/download/$LATEST/zellij-x86_64-unknown-linux-musl.tar.gz" \
+  | tar -xzC /tmp
+sudo install -m 755 /tmp/zellij /usr/local/bin/zellij
+```
+
+### Auto-launch fish only when interactive
+
+Append to the end of `~/.bashrc` (AFTER the existing exports):
+
+```bash
+if [[ -t 1 && -z "$NO_FISH" && -z "$INSIDE_FISH" ]] && command -v fish >/dev/null; then
+    INSIDE_FISH=1 exec fish
+fi
+```
+
+The conditions:
+
+- `-t 1` — stdout is a TTY. Non-interactive SSH (`ssh brawl 'cmd'`) skips this entirely, so automations stay in bash.
+- `-z "$NO_FISH"` — escape hatch. Set `NO_FISH=1` to force bash for one session.
+- `-z "$INSIDE_FISH"` — prevents recursive fish launches if a child session re-sources `.bashrc`.
+
+### Gotchas — read this before being surprised
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `ssh brawl` shows a fish prompt | Working as designed. | Type `bash` to drop into bash, or just use fish. |
+| `ssh brawl 'echo hi; date'` runs fine | No TTY allocated → `-t 1` false → no fish exec → bash runs the command. | Nothing to do. |
+| `ssh -t brawl 'sudo apt install foo'` errors with weird syntax | `-t` allocates a TTY → fish exec'd → fish tries to interpret bash syntax. | Drop `-t`, or `NO_FISH=1 ssh -t brawl '...'`, or `ssh -t brawl 'bash -c "..."'`. |
+| A future automation script that SSHes interactively gets a fish prompt instead of bash | Auto-exec fired. | `NO_FISH=1 ssh ...` or `ssh brawl bash -lc '...'`. |
+| systemd timers / services running fine | No terminal, `-t 1` false. systemd uses absolute paths and `Environment=` directives, never the user shell. | Unchanged. |
+| Migrations / re-deploys per this runbook | All examples are bash. They still work because the login shell is bash and `.bashrc` runs first. | Unchanged. |
+| `apt install` triggers needrestart prompts on the droplet | Should already be defused (Step 7). | If it does prompt, re-apply Step 7. |
+
+### Why NOT `chsh -s /usr/bin/fish`
+
+Setting fish as the *default* login shell would require:
+
+- Translating every `~/.bashrc` export into fish syntax (`set -gx ...`)
+- Doubling every example in this runbook to bash + fish, OR breaking the runbook
+- Risking surprise breakages in SSH-based automations that assume bash
+- Risking a future fresh-VPS migration where the runbook hasn't been kept in sync
+
+The "fish from bash" pattern is intentionally subtle: bash still owns the boot path and runs first; fish is the *interactive top layer only*.
+
+### tmux / zellij + fish
+
+If you want new tmux/zellij sessions to default to fish (existing tmux sessions are unaffected):
+
+```bash
+echo 'set -g default-shell /usr/bin/fish' >> ~/.tmux.conf
+echo 'set -g default-command "/usr/bin/fish -l"' >> ~/.tmux.conf
+
+mkdir -p ~/.config/zellij
+echo 'default_shell "fish"' >> ~/.config/zellij/config.kdl
+```
+
+This does NOT affect the SSH login session — that's still bash → fish-exec, and remains exactly as configured above.
+
+### Reverting
+
+```bash
+# Disable the auto-exec, leaving fish/zellij installed
+sed -i '/INSIDE_FISH=1 exec fish/,$d' ~/.bashrc
+# (Or just delete those 3 lines manually.)
+
+# Or remove entirely
+sudo apt remove -y fish
+sudo rm /usr/local/bin/zellij
+```
+
+---
+
 ## Day-2 operations
 
 ### Deploy code changes from local

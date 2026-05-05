@@ -35,10 +35,15 @@
 | Reserved IPv4 | `209.38.4.212` (inbound only — SSH lands here) |
 | Anchor IPv4 | `64.23.171.86` (outbound source IP — what BS API sees) |
 | User | `lin` (sudo), key-only SSH; root login disabled |
+| **Login shell** | **`/bin/bash`** (unchanged; `chsh` NOT used) |
+| **Interactive shell** | fish (auto-exec'd from `~/.bashrc` for TTY sessions only — `NO_FISH=1` to skip) |
+| **Multiplexer** | tmux + zellij both installed at `/usr/local/bin/` |
 | Code path | `/home/lin/brawlstar-agent/` |
 | DB path | `/home/lin/brawlstar-agent/data/brawlstars.db` |
 | Cron | `brawl-collect.timer` every 6h → `brawl-collect.service` |
 | Backup | (planned) Cloudflare R2 nightly via `rclone` |
+
+**Shell-layering note**: `~/.bashrc` runs first (sources `UV_CACHE_DIR`, `BRAWL_API_KEY_VAR`), then auto-execs fish only if `-t 1 && -z $NO_FISH && -z $INSIDE_FISH`. Non-interactive `ssh brawl 'cmd'` stays in bash. systemd units never see fish (absolute paths + `Environment=` directives). See `docs/deployment.md` § 16 for the full pattern + gotcha table.
 
 ## Brawl Stars API
 

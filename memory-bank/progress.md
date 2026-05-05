@@ -93,6 +93,12 @@
 - Verified the dashboard refactor compiles cleanly; cache helpers (`read_cache`, `write_cache`) imported successfully.
 - Added `--remote-cache HOST` flag to `scripts/dashboard.py`: auto-rsyncs cache from a remote SSH host before launching. Makes the local-laptop workflow trivial — no SSH tunnel, no DB sync, just `uv run python scripts/dashboard.py --remote-cache brawl`. Falls back to local cache if rsync fails (offline-tolerant).
 
+### Session 8 (continued) — 2026-05-04 late night — Cold-start in progress + droplet shell layering
+- Cold-start orchestrator launched on droplet inside tmux session `coldstart`. Phase 1 backup completed (~210k battles). Phase 2 stopped timers, deleted ~132k pre-cutoff battles, VACUUM'd, kicked off aggressive crawl in nohup at 3 qps.
+- Documented the shell layering on the droplet: fish auto-execs from `~/.bashrc` for TTY sessions only (`-t 1 && -z $NO_FISH && -z $INSIDE_FISH`), zellij installed alongside tmux. Login shell is **still bash** (no `chsh`) so the runbook stays accurate, `~/.bashrc` exports keep working, and `ssh brawl 'cmd'` automations never see fish.
+- Deployment runbook gained a § 16 with install steps + a gotcha table (e.g., `ssh -t brawl 'cmd'` allocates a TTY → would exec fish → use `NO_FISH=1` or `bash -lc '...'` for bash syntax).
+- techContext.md updated with login/interactive shell + multiplexer entries.
+
 ### Session 8 (continued) — 2026-05-04 evening — Verification + cold-start orchestrator
 - Wrote `scripts/verify-bug.py` to empirically test the team-result bug rate by re-fetching legacy battles from low-activity participants and comparing post-fix API results to stored labels.
 - Ran 80 candidates → 20 recoverable → **0 flipped**. Surprising at first, but diagnostic: all 20 recovered battles turned out to be post-fix-INGESTED (pre-cutoff battle_time but post-deploy ingestion). The bug is intrinsically untestable in stored data — pre-fix-ingested battles have all aged out of the API window.
