@@ -502,53 +502,49 @@ sudo systemctl daemon-reload
 
 ### View the dashboard
 
-**Recommended: SSH tunnel + run dashboard on droplet.** With the analytics cache (Step 14c) populated, the dashboard launches in <1 second by reading `data/analytics_cache.json` instead of running fresh SQL. The cache is refreshed every hour by the `brawl-analytics.timer`.
+**Recommended: run the dashboard locally with auto-fetch of the cache.** The dashboard server reads everything (matchups, synergies, personal data, etc.) from `data/analytics_cache.json` — *the SQLite DB is not needed locally*. Sync just that one small JSON file (~few MB) and launch:
 
 ```bash
-# From any laptop with SSH access
-ssh -L 8765:localhost:8765 lin@<reserved_ip> \
-  'cd ~/brawlstar-agent && PYTHONPATH=src ~/.local/bin/uv run python scripts/dashboard.py --no-open'
-
-# Then in browser:
-#   http://localhost:8765
+# From your laptop (assumes you have an `~/.ssh/config` Host alias 'brawl')
+cd /path/to/local/brawlstar-agent
+PYTHONPATH=src uv run python scripts/dashboard.py --remote-cache brawl
 ```
 
-The dashboard header shows the cache age and compute time:
-- "analytics cached 23 min ago · compute took 87s" — healthy
-- "analytics cached 4.5h ago" colored orange — stale (timer may have failed; check `systemctl --failed`)
-- "compute took 32 min" colored orange — compute is slowing down (DB grew, missing index, etc.)
-- "compute took 47 min" colored red — likely killed by `TimeoutStartSec=2700`
+That single command:
+1. rsyncs `data/analytics_cache.json` from the droplet (sub-second on a small file)
+2. Launches the local dashboard server on `localhost:8765`
+3. Auto-opens your browser
 
-If the cache is missing or you want fresh numbers:
+If rsync fails (offline, VPN, droplet down), it falls back to whatever local cache file you have, with a warning. So the dashboard always launches; you just see staler data.
+
+The dashboard header shows freshness:
+- `analytics cached 23 min ago · compute took 87s` — healthy
+- `analytics cached 4.5h ago` (orange) — stale (timer may have failed; check `systemctl --failed` on the droplet)
+- `compute took 32 min` (orange) — compute is slowing down (DB grew, missing index, etc.)
+- `compute took 47 min` (red) — likely killed by `TimeoutStartSec=2700`; check `journalctl -u brawl-analytics`
+- `computed inline (no cache)` (orange) — no cache was found anywhere; precompute hasn't run yet
+
+To skip the auto-fetch (use whatever local cache exists), just omit `--remote-cache`. To force fresh computation (must have the DB locally too), use `--no-cache` or `--recompute`.
+
+**Alternative 1: SSH tunnel + run dashboard on droplet.** Useful when you're not at your main laptop. Same `localhost:8765` story but on the droplet's hardware:
+
 ```bash
-# Force a recompute on the droplet (5-15 min, blocks until done)
-ssh lin@<reserved_ip> 'cd ~/brawlstar-agent && PYTHONPATH=src ~/.local/bin/uv run python scripts/precompute-analytics.py'
-# Then start the dashboard as usual.
+ssh -L 8765:localhost:8765 brawl \
+  'cd ~/brawlstar-agent && PYTHONPATH=src ~/.local/bin/uv run python scripts/dashboard.py --no-open'
+# Browser: http://localhost:8765
 ```
 
 > The absolute `~/.local/bin/uv` path is necessary because non-interactive SSH shells don't load `~/.bashrc`. Same reason systemd unit files use the absolute path.
 
-**Alternative: rsync DB to laptop and run dashboard locally.** Useful for ad-hoc deep-dives where you want full power for slicing the data. Skip the cache (laptop is fast enough to compute fresh):
+**Alternative 2: rsync the DB and run dashboard locally with `--no-cache`.** For ad-hoc deep-dives where you want full power for slicing the raw data with custom queries:
 
 ```bash
-# From laptop — sync latest DB from droplet (~3-5 min for ~600 MB)
-rsync -avz --progress lin@<reserved_ip>:/home/lin/brawlstar-agent/data/brawlstars.db \
+rsync -avz --progress brawl:brawlstar-agent/data/brawlstars.db \
   /path/to/local/data/brawlstars.db
-
-# Run dashboard locally with --no-cache (laptop is fast enough)
-cd /path/to/local
 PYTHONPATH=src uv run python scripts/dashboard.py --no-cache
 ```
 
-> **Portraits**: the dashboard tries to load brawler portraits from `datasets/character_refs/`. That directory is gitignored. Sync it once (~2.9 MB) so portraits render. Note `--mkpath` — `datasets/` itself won't exist on the droplet after a fresh `git clone`:
-> ```bash
-> # From laptop, one-time:
-> rsync -avz --mkpath /path/to/local/datasets/character_refs/ \
->   lin@<reserved_ip>:/home/lin/brawlstar-agent/datasets/character_refs/
-> ```
-> Without it, the dashboard still works but uses text-only brawler labels.
-
-`Ctrl+C` in the SSH terminal stops both the dashboard and the tunnel.
+> **Portraits**: the dashboard tries to load brawler portraits from `datasets/character_refs/`. That directory is gitignored. On a fresh laptop, you'll have it. On the droplet, sync once with `rsync -avz --mkpath ...character_refs/ brawl:brawlstar-agent/datasets/character_refs/` so the SSH-tunnel alternative renders portraits too.
 
 For sharing the dashboard outside your laptop (phone, friends), do **not** open UFW. Use Cloudflare Tunnel instead — it exposes the dashboard via a public Cloudflare hostname while keeping your droplet's firewall fully closed. See [Cloudflare Tunnel docs](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) when you're ready.
 

@@ -39,6 +39,7 @@ Crawler is **deployed and running on a DigitalOcean droplet** (DEC-007) on a 6-h
 - Pinned-tags crawler + 1h timer (script + tags file ready, systemd unit not yet installed on droplet)
 - Analytics precompute + 1h timer with 45 min watchdog (script + dashboard refactor ready, systemd unit not yet installed on droplet)
 - Dashboard reads cached JSON for instant load; shows cache age + compute time in header
+- `--remote-cache HOST` flag in `scripts/dashboard.py` auto-rsyncs the cache from the droplet so the dashboard runs entirely on local laptop without any DB transfer (cache is the only thing needed)
 
 ## Deferred (post-Phase-1)
 - Public dashboard via Cloudflare Tunnel + Pages frontend (only when actually wanted)

@@ -91,6 +91,7 @@ Current dataset: **160,764 battles** across 11 modes, **553k+ player tags**, tim
 - New systemd unit pair: `brawl-analytics.service` + `.timer` (every 1h, `TimeoutStartSec=2700` watchdog at 45 min).
 - Documented IP semantics (anchor IPv4 = outbound, reserved IPv4 = inbound, both WAN) and SSH config alias pattern in deployment.md.
 - Verified the dashboard refactor compiles cleanly; cache helpers (`read_cache`, `write_cache`) imported successfully.
+- Added `--remote-cache HOST` flag to `scripts/dashboard.py`: auto-rsyncs cache from a remote SSH host before launching. Makes the local-laptop workflow trivial — no SSH tunnel, no DB sync, just `uv run python scripts/dashboard.py --remote-cache brawl`. Falls back to local cache if rsync fails (offline-tolerant).
 
 ### Session 6 — 2026-05-03 — Production deploy on DigitalOcean
 - Provisioned DigitalOcean Basic droplet ($6/mo, Ubuntu 24.04 LTS, US region) — DEC-007

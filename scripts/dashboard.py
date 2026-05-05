@@ -16,6 +16,8 @@ Usage:
 import argparse
 import base64
 import json
+import shutil
+import subprocess
 import sys
 import webbrowser
 from datetime import datetime, timezone
@@ -749,6 +751,42 @@ class DashboardHandler(SimpleHTTPRequestHandler):
         pass
 
 
+def fetch_remote_cache(ssh_host: str, remote_path: str = "brawlstar-agent/data/analytics_cache.json") -> bool:
+    """rsync the analytics cache from a remote host into the local CACHE_PATH.
+
+    Returns True on success, False on any rsync error or timeout. The local
+    cache file is preserved on failure so the dashboard can still launch with
+    whatever's there.
+    """
+    if not shutil.which("rsync"):
+        print("WARN: rsync not installed locally; skipping remote cache fetch", file=sys.stderr)
+        return False
+
+    remote = f"{ssh_host}:{remote_path}"
+    CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Fetching analytics cache from {ssh_host}...", flush=True)
+    try:
+        result = subprocess.run(
+            ["rsync", "-az", "--timeout=30", remote, str(CACHE_PATH)],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except subprocess.TimeoutExpired:
+        print("WARN: rsync timed out after 60s; using whatever local cache exists.", file=sys.stderr)
+        return False
+    except Exception as exc:
+        print(f"WARN: rsync failed: {exc}", file=sys.stderr)
+        return False
+
+    if result.returncode != 0:
+        stderr = result.stderr.strip() or result.stdout.strip()
+        print(f"WARN: rsync exited {result.returncode}; falling back to local cache.\n{stderr}", file=sys.stderr)
+        return False
+
+    return True
+
+
 def _format_cache_age(computed_at_iso: str) -> str:
     """Render '23 minutes ago' / '4 hours ago' for the cache header."""
     try:
@@ -784,7 +822,16 @@ def main():
         action="store_true",
         help="Skip cache entirely; compute inline without writing.",
     )
+    parser.add_argument(
+        "--remote-cache",
+        metavar="SSH_HOST",
+        help="Before launching, rsync the analytics cache from a remote SSH host "
+             "(e.g., 'brawl'). Falls back to local cache on failure.",
+    )
     args = parser.parse_args()
+
+    if args.remote_cache:
+        fetch_remote_cache(args.remote_cache)
 
     cache_meta: dict | None = None
     if args.recompute:
