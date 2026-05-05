@@ -17,10 +17,11 @@
 │   ├── recommender/            # Phase-6 brawler-pick recommendation models (Session 8)
 │   │   ├── dataset.py          # Clean-window loader + perspective-doubling + splits + name resolver
 │   │   ├── features.py         # TeamFeaturizer (sparse + dense modes for sklearn / LGBM)
-│   │   ├── baselines.py        # Global / Mode / ModeMap Wilson-CI baselines
+│   │   ├── baselines.py        # Random / TrophyOnly / Global / Mode / ModeMap baselines
 │   │   ├── team_model.py       # LogRegTeamModel + LGBMTeamModel + evaluate + save/load
 │   │   ├── inference.py        # rank_brawlers_for_map / complete_team / last_pick
-│   │   └── cv.py               # Sliding temporal-fold harness
+│   │   ├── cv.py               # Sliding temporal-fold harness
+│   │   └── topk_eval.py        # Top-K recommendation eval: hit@K, MRR, win-rate uplift
 │   ├── capture.py              # Frame extraction, video reading
 │   ├── crop.py                 # Auto-detect + batch crop game region
 │   ├── perception.py           # Color analysis, template matching, MSER
@@ -44,7 +45,8 @@
 │   ├── analyze-battles.py      # CLI: run analytics queries on collected data
 │   ├── dashboard.py            # Local web dashboard; --remote-cache HOST rsyncs cache from droplet on launch
 │   ├── train-recommender.py    # End-to-end train + eval; --cutoff makes it re-runnable monthly
-│   └── analyze-recommender.py  # Plots, feature importance, DAMIAN deep-dive from saved report
+│   ├── analyze-recommender.py  # Plots, feature importance, DAMIAN deep-dive from saved report
+│   └── eval-topk.py            # Top-K recommendation eval: hit@K, MRR, win uplift
 ├── capture/
 │   ├── clips/                  # Downloaded YouTube videos
 │   ├── frames/                 # Extracted frames + review manifests per clip

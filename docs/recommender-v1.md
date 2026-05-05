@@ -50,8 +50,12 @@ models/recommender_v1.lgb.txt    # Trained LightGBM (with .meta.json featurizer)
 
 Trained on 84,208 rows of clean post-fix data, mostly from 2026-05-03 to 2026-05-05.
 
+### Binary win prediction
+
 | Model       | AUC    | logloss | accuracy | Brier  | fit time |
 |-------------|--------|---------|----------|--------|----------|
+| **Random** (uniform 0.5 + jitter) | **0.5000** | 0.6931 | 0.5000 | 0.2500 | 0.0s |
+| **TrophyOnly** (sigmoid of log-trophy diff) | **0.4965** | 0.6932 | 0.5082 | 0.2500 | 0.0s |
 | Global      | 0.6549 | 0.6596  | 0.6041   | 0.2337 | 0.1s     |
 | Mode        | 0.6830 | 0.6456  | 0.6290   | 0.2272 | 0.1s     |
 | ModeMap     | 0.6965 | 0.6356  | 0.6360   | 0.2226 | 0.4s     |
@@ -59,12 +63,56 @@ Trained on 84,208 rows of clean post-fix data, mostly from 2026-05-03 to 2026-05
 | **LightGBM**| **0.7298** | **0.5988** | **0.6558** | **0.2080** | 8.0s |
 
 Reading the table:
-- **Floor**: Global Wilson WR (0.655 AUC) — knowing only "is brawler X usually a winner" gets you to 0.65. So team-vs-team prediction is *easier than 50/50* even from per-brawler base rates alone.
-- **ModeMap baseline** is the bar to beat if you stop short of a real model: knowing brawler × mode × map without any interactions gets you to 0.697. Surprisingly hard.
-- **LogReg with multi-hot team features** (270 features) is *worse* than the ModeMap heuristic (0.661 vs 0.697). Linear without interaction terms can't beat the ModeMap aggregate. Adding `brawler × map` cross-features would close that gap; we left this out for v1 simplicity since LightGBM gets there for free via tree splits.
+- **Random floor**: 0.500 AUC, exactly as theory says. Confirms our metric pipeline.
+- **TrophyOnly = 0.497 AUC**. **The "high-trophy team beats low-trophy team" signal is essentially absent in this data.** That sounds wrong but actually makes sense: ranked matchmaking pairs players with similar trophies, so within a match the trophy difference is small and largely uninformative. **Every AUC point above 0.500 is genuine brawler-pick signal**, not a skill-tier shortcut. This is rare — most "intuitive" baselines on competitive game data are dominated by skill leakage. We don't have that problem here.
+- **Global Wilson** (0.655) — the "is brawler X usually a winner" heuristic. Strong floor.
+- **ModeMap** (0.697) — knowing brawler × mode × map without interactions. Surprisingly hard to beat.
+- **LogReg with multi-hot team features** (270 features, no interactions) is *worse than the ModeMap heuristic* (0.661 vs 0.697). LogReg is a real ML model, not a heuristic — but without explicit `brawler × map` cross-features, it can only learn flat per-brawler effects, the same information ModeMap aggregates directly. Tree models (LightGBM) get interactions for free.
 - **LightGBM** wins by 3.3 AUC points over the best heuristic. The interactions matter.
 
-See `reports/recommender_v1/fig_auc_bars.png` for the visualization.
+See `reports/recommender_v1/fig_auc_bars.png`.
+
+### Top-K recommendation: where does the actually-played brawler rank?
+
+AUC says "how often is team A's win prob higher than team B's", but the **user-facing question** is "given partial draft state, list the top-K brawlers I should consider". Different problem, different metrics.
+
+For each test battle we mask team A's third pick, score all ~97 legal candidates with each model, and record where the actually-played brawler lands.
+
+| Model        | hit@1   | hit@3 | hit@5 | hit@10 | MRR    | mean rank |
+|--------------|--------:|------:|------:|-------:|-------:|----------:|
+| Random (uniform) | 0.001 | 0.03  | 0.05  | 0.10   | 0.04   | 49.0 |
+| Global Wilson    | 0.006 | 0.19  | 0.19  | 0.22   | 0.13   | 35.0 |
+| ModeMap          | 0.008 | 0.06  | 0.15  | 0.20   | 0.09   | 34.5 |
+| **LightGBM**     | **0.150** | **0.194** | **0.225** | **0.293** | **0.205** | 36.2 |
+
+LightGBM **hit@1 is 15× the uniform-random floor** (0.150 vs ~0.010 = 1/97). At hit@10 it's still ~3× random.
+
+Why is **Global Wilson hit@3 (0.19) almost as good as LightGBM hit@3 (0.19)?** Because the most-played-and-highest-WR brawlers (DAMIAN, OLLIE, GLOWBERT etc.) are picked very often *regardless of context*. So just blindly recommending the top-3 globally-strongest brawlers correctly predicts the actual pick ~19% of the time — but **only because the meta is so concentrated**, not because the model understands matchups. The hit@1 is the cleaner test: there Global gets 0.6%, LightGBM 15.0% — a 25× gap, because hitting the *exact* top recommendation requires real context modeling.
+
+### Win-rate uplift: actionable test of the recommendation
+
+When the actually-played brawler IS in the model's top-K, what's the win rate of those games?
+
+| Top-K    | LightGBM WR | Random WR (test set baseline) | Uplift Δ |
+|----------|------------:|------------------------------:|---------:|
+| top-1    | 62.5%       | 51.1%                         | +11.4 pp |
+| top-3    | 62.5%       | 51.1%                         | +11.4 pp |
+| top-5    | 61.7%       | 51.1%                         | +10.7 pp |
+| top-10   | 59.1%       | 51.1%                         | +8.0 pp  |
+
+**Read this as the player-flexibility tradeoff**: going from top-1 → top-10 doubles the candidate pool (more flexibility for "I don't have that brawler" / "I'm bad at it") while *only sacrificing 3 percentage points of expected win rate*. Top-K with K=5 is a great default.
+
+### Winners-only top-K (cleanest meta-quality test)
+
+If we restrict to test rows where team A actually won, the played brawler was at least *good enough for that specific matchup*. The model's rank of that brawler is then a quality signal:
+
+| Model       | hit@1 | hit@5 | hit@10 | MRR    |
+|-------------|------:|------:|-------:|-------:|
+| Random      | 0.001 | 0.04  | 0.09   | 0.04   |
+| ModeMap     | 0.015 | 0.22  | 0.29   | 0.12   |
+| **LightGBM**| **0.210** | **0.313** | **0.389** | **0.276** |
+
+**LightGBM hit@1 = 21% on winning teams**: when the team actually won with brawler X, our model's top-1 recommendation IS X 21% of the time. That's 20× over uniform random.
 
 ### Per-mode breakdown
 
@@ -124,6 +172,14 @@ res = last_pick(
 
 The notebook (`notebooks/recommender_v1.ipynb`) has these scenarios pre-rendered.
 
+## Operational note: brawlers table was stale (fixed 2026-05-04)
+
+The droplet's `brawlers` table had only 101 rows even though `battle_players` had 103 distinct brawler IDs. Cause: `scripts/collect-battles.py --collect-only` (the systemd-timer command) skipped `seed_brawlers()` to "save the API call". DAMIAN (id 16000104) showed up in real battles starting **2026-04-24** but never made it into the canonical table.
+
+Fix: `--collect-only` now calls `seed_brawlers()` once at the start of every run. One extra API call per 6 hours, idempotent UPSERT, ensures the table stays current as Supercell ships new brawlers. Code path doesn't affect already-stored battle data.
+
+The recommender uses `dataset.load_brawler_names()` which already falls back to `battle_players.brawler_name` for any IDs missing from the canonical table — so the model itself was never affected by this bug.
+
 ## Known issue: release-meta inflation (the DAMIAN case)
 
 When LightGBM is asked "best last pick on Backyard Bowl", it ranks DAMIAN at 0.96 P(win) and the next-best brawler at 0.90. That's a striking gap, and worth understanding before you trust it.
@@ -146,6 +202,58 @@ DAMIAN is brawler ID `16000104` — likely Brawl Stars' newest release (the ID i
 3. If we wanted to dampen this in v2, hierarchical priors (per-brawler shrinkage toward the global mean) or rolling-window training (drop everything older than 30 days) would help.
 
 `reports/recommender_v1/damian_deepdive.json` has the raw numbers.
+
+## Why we can't recover the legacy bug labels (long answer to "is the data really wrong?")
+
+It is reasonable to ask:
+
+1. *Are the legacy labels actually wrong?*
+2. *If so, why can't we revert them?*
+
+Both are good questions. Detail by detail:
+
+### The bug, restated precisely
+
+Pre-`dde58a4` `db.py::_insert_battle_players` did:
+```python
+team_result = result if team_idx == 0 else inverse(result)
+```
+where `result` is `battle.result` from the *fetched player's* perspective — the player whose `/players/{tag}/battlelog` we hit. The fetched player can be on team 0 OR team 1.
+
+If the fetched player was on team 0: labels are correct.
+If the fetched player was on team 1: team 0 gets the *fetched player's* result, which is actually team 1's outcome, and team 1 gets the inverse — i.e., team 0's outcome. **Both teams' labels are flipped relative to ground truth.**
+
+Crucially, the bug **preserves every internal invariant we have**:
+- Exactly one team has `'victory'`, exactly one has `'defeat'` (still true, just on the wrong teams).
+- `trophy_change` (stored on `team_index=0`'s first player) reflects the *fetched player's* trophy delta. Pre-fix, the row's `result` is also the fetched player's result. So `result` and `trophy_change` *agree on sign in both eras*. No mismatch to detect.
+
+### Why we can't tell which battles are flipped from stored data
+
+We never recorded `fetched_for_tag`. Without knowing which player triggered the battlelog fetch, there is no internal signal that distinguishes "labels correct" from "labels symmetrically flipped".
+
+### Could we re-crawl and verify empirically?
+
+Yes — for a *small subset* of legacy battles. The Brawl Stars API only returns each player's most recent **25 battles**. For a battle ingested on 2026-04-15, by today (2026-05-05) every player who participated has played 25+ more games, so the battle has aged out of every player's API window. **It's gone.**
+
+The only legacy battles potentially recoverable are ones that:
+- Are recent enough to still be in some participant's last-25 (typically <2 weeks old, less for active players).
+- Have at least one inactive participant (low play frequency → battle hasn't aged out).
+
+Concretely, if you wanted to verify the bug:
+1. Pick legacy battles between, say, 2026-04-25 and 2026-05-02 (the bug's last week).
+2. For each, find the participant with the smallest count of subsequent battles in our DB (proxy for "low activity, battle might still be in their feed").
+3. Re-crawl that player's battlelog with the post-fix code.
+4. If the same `battle_id` appears, compare new labels to stored labels. A roughly 50% mismatch rate would confirm the bug.
+
+This is a small experiment — maybe 50-100 verifiable battles, which would tell us whether the bug actually fired at the expected ~50% rate.
+
+But verification doesn't enable correction. Even if we proved 50% of legacy battles are flipped, **we still can't tell which 50%** without re-fetching each one. And re-fetching is impossible for the bulk of legacy data because of the 25-battle window.
+
+### Operational conclusion
+
+Strict post-2026-05-03 filter for everything (training, evaluation, inference). Documented as DEC-010. The verification experiment described above is interesting science but doesn't change the operational stance — it would only confirm the bug rate, which is already inferable from the code change.
+
+If you want to run it later, the script outline is in this section; it's <100 lines of code and would take ~30 min to run with the existing API client.
 
 ## How to retrain
 

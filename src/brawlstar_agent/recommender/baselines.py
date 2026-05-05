@@ -25,6 +25,76 @@ import pandas as pd
 from ..models import wilson_interval
 
 
+# ----- floors: random and trophy-only -----
+
+@dataclass
+class RandomBaseline:
+    """Predict 0.5 + tiny jitter so candidates rank randomly under ties.
+
+    Establishes the AUC≈0.5 floor for binary win prediction AND the
+    expected K/N hit-rate floor for top-K recommendation. Without the
+    jitter, ranking ties would resolve in DataFrame insertion order
+    (effectively by brawler ID), which biases hit@K toward low-ID brawlers.
+    """
+    seed: int = 42
+
+    def fit(self, train: pd.DataFrame) -> "RandomBaseline":  # noqa: ARG002
+        return self
+
+    def predict_proba(self, df: pd.DataFrame) -> np.ndarray:
+        rng = np.random.default_rng(self.seed)
+        # Center on 0.5; ε is small enough that AUC≈0.5 in expectation but
+        # sort-order is dominated by the noise (so hit@K is K/N as theory says).
+        eps = 1e-6
+        return 0.5 + (rng.random(len(df)).astype(np.float32) - 0.5) * eps
+
+    def score_brawler(self, brawler_id: int, **_) -> float:  # noqa: ARG002
+        return 0.5
+
+    def score_team(self, team: tuple[int, ...], **_) -> float:  # noqa: ARG002
+        return 0.5
+
+
+@dataclass
+class TrophyOnlyBaseline:
+    """Predict P(win) from team-mean trophy difference alone.
+
+    Reveals how much of any model's AUC is coming from the trivial
+    "high-trophy team usually wins low-trophy team" signal vs. actual
+    brawler-pick understanding.
+
+    Calibration: fit a logistic on (trophy_diff, win) on train data so the
+    sigmoid coefficients aren't a guess.
+    """
+    coef_: float = 0.0
+    intercept_: float = 0.0
+
+    def fit(self, train: pd.DataFrame) -> "TrophyOnlyBaseline":
+        from sklearn.linear_model import LogisticRegression
+        a = train["team_a_trophies_mean"].fillna(0).astype(float).values
+        b = train["team_b_trophies_mean"].fillna(0).astype(float).values
+        # Use log-trophy diff (matches feature engineering elsewhere in the package)
+        diff = np.log1p(np.maximum(a, 0.0)) - np.log1p(np.maximum(b, 0.0))
+        m = LogisticRegression()
+        m.fit(diff.reshape(-1, 1), train["team_a_wins"].values)
+        self.coef_ = float(m.coef_[0, 0])
+        self.intercept_ = float(m.intercept_[0])
+        return self
+
+    def predict_proba(self, df: pd.DataFrame) -> np.ndarray:
+        a = df["team_a_trophies_mean"].fillna(0).astype(float).values
+        b = df["team_b_trophies_mean"].fillna(0).astype(float).values
+        diff = np.log1p(np.maximum(a, 0.0)) - np.log1p(np.maximum(b, 0.0))
+        z = self.coef_ * diff + self.intercept_
+        return 1.0 / (1.0 + np.exp(-z))
+
+    def score_brawler(self, brawler_id: int, **_) -> float:  # noqa: ARG002
+        return 0.5
+
+    def score_team(self, team: tuple[int, ...], **_) -> float:  # noqa: ARG002
+        return 0.5
+
+
 def _wins_total(df: pd.DataFrame, brawler_col: str = "team_a") -> pd.DataFrame:
     """Expand team rows to per-brawler rows and aggregate wins/total per brawler.
 

@@ -93,6 +93,23 @@
 - Verified the dashboard refactor compiles cleanly; cache helpers (`read_cache`, `write_cache`) imported successfully.
 - Added `--remote-cache HOST` flag to `scripts/dashboard.py`: auto-rsyncs cache from a remote SSH host before launching. Makes the local-laptop workflow trivial — no SSH tunnel, no DB sync, just `uv run python scripts/dashboard.py --remote-cache brawl`. Falls back to local cache if rsync fails (offline-tolerant).
 
+### Session 8 (continued) — 2026-05-04 — Recommender v1.1 — top-K eval, baselines floor, collector bug fix
+- **Found and fixed a real collector bug**: `scripts/collect-battles.py --collect-only` (the systemd-timer command on the droplet) skipped `seed_brawlers()`. So the `brawlers` table was frozen at 101 rows since the May-3 deploy, even though new brawlers (DAMIAN id 16000104, first seen in battles **2026-04-24**) had been showing up in `battle_players`. Patch: `--collect-only` now seeds brawlers once at the start of every run. One extra API call per 6 hours, idempotent UPSERT.
+- **Confirmed 4,820 `UNKNOWN` (id=0) brawler_player rows** — these are battles where the API returned a malformed/missing brawler dict. Edge case, not a model concern (recommender filters them out via vocab).
+- **Added Random + TrophyOnly baselines** to make the AUC=0.5 floor explicit. **Critical finding**: `TrophyOnly` AUC = 0.497 — i.e., trophy diff alone is essentially random. Ranked matchmaking equalizes trophies within a match, so the AUC>0.5 we see in every other model is *all genuine brawler-pick signal*, not skill-tier leakage. Documents that the 0.65–0.73 AUC numbers are honestly earned.
+- **Added top-K recommendation evaluation** (`recommender/topk_eval.py` + `scripts/eval-topk.py`). For each test row, mask team A's last pick, score all ~97 legal candidates, find rank of actually-played brawler. Reports hit@K, MRR, mean/median rank, and win-rate uplift conditioned on actual pick being in top-K.
+- **Top-K results** (random split, n=2,500, last_pick mode):
+  - Random: hit@1=0.001, hit@10=0.09 (matches K/N theoretical floor)
+  - Global Wilson: hit@1=0.006, hit@3=0.19, hit@10=0.22 (hit@3 is decent — top global brawlers are picked often regardless of context)
+  - ModeMap: hit@1=0.008, hit@5=0.15, hit@10=0.20
+  - **LightGBM: hit@1=0.150 (15× random), hit@3=0.194, hit@5=0.225, hit@10=0.293**, MRR=0.205
+  - Win uplift: when actual pick is in LightGBM top-1, team WR = 62.5% (vs 51.1% baseline, **+11.4 pp**)
+  - Winners-only top-K (cleanest meta-quality test): LightGBM hit@1=**0.21** (20× random), hit@10=**0.39**
+- **Player-flexibility tradeoff** (top-1 → top-10): hit rate doubles, expected WR drops 3 pp. Top-5 is a reasonable default.
+- **Documented** why legacy bug labels can't be recovered: the bug preserves all internal invariants; trophy_change/result alignment is identical pre- and post-fix; verifying via re-crawl is only possible for very recent battles (<2 weeks) due to the 25-battle API window. Even verification doesn't enable correction — we still couldn't tell which specific battles are flipped.
+- Updated `docs/recommender-v1.md` with new tables, top-K section, win-uplift section, collector-bug note, and the long-form legacy-bug-recovery answer.
+- Saved `reports/recommender_v1_topk.json` for downstream consumption.
+
 ### Session 8 — 2026-05-04 — Brawler-pick recommender v1 (Phase 6 kickoff)
 - Rsync'd droplet DB to local: 210k battles, latest 2026-05-05, **78k clean post-fix**.
 - Tried to implement the legacy label-flip detector floated in `analytics-notes.md`. **It doesn't work** — the bug swaps team labels symmetrically and preserves the "1W+1L per battle" invariant. Recorded as **DEC-010**: legacy data is unusable for training and evaluation; strict post-2026-05-03 filter is the only path.

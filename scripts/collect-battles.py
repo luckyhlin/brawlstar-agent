@@ -64,6 +64,11 @@ def main():
         if args.profiles:
             stats = collector.collect_profiles(max_players=args.profile_limit)
         elif args.collect_only:
+            # Cheap: one API call, idempotent UPSERT, keeps canonical brawler
+            # list current as Supercell ships new brawlers (e.g. DAMIAN id 16000104
+            # showed up in battles on 2026-04-24 but `brawlers` table stayed at
+            # 101 because `--collect-only` historically skipped seeding).
+            collector.seed_brawlers()
             stats = collector.collect_battlelogs(
                 max_players=args.battlelog_limit,
                 older_than_hours=args.older_than,
