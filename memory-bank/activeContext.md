@@ -1,10 +1,16 @@
 # Active Context
 
-## Current State
+## Current State (2026-05-06 mid-Session 8)
 
-**Phase 6 v1 shipped (Session 8, 2026-05-04)**: brawler-pick recommender trained, evaluated, documented, and committed. LightGBM team-completion model achieves AUC 0.730 (random) / 0.704 (temporal) on clean post-fix data.
+**Phase 6 v2 evaluation in progress**. v1 (78k clean) shipped earlier in Session 8 at LightGBM AUC 0.730 / temporal 0.704 / hit@1 0.150. After a 1.5-day **cold-start crawl** that brought clean training data to 4M battles (51× growth), v2 Run A is done with default cutoff (cutoff 2026-05-03):
 
-**Production crawl** still running on droplet (3 systemd timers from Session 7). Local DB synced this session: 210k battles, latest 2026-05-05, **78k clean post-fix** battles.
+- LightGBM: 0.7382 random / **0.7281 temporal** (vs v1: +0.8pp random, +2.4pp temporal)
+- LogReg: 0.6804 random (vs v1: +1.9pp — data helps linear more than trees)
+- Reports: `reports/recommender_v2_default.json`, model `models/recommender_v2_default.lgb.txt`
+
+**Pending**: Run B (all-data), Run C (30-day window), top-K eval, droplet shrinkage cleanup. See `HANDOFF.md` if a fresh agent is picking up.
+
+**Production crawl** is currently **paused** — droplet timers stopped while user shrinks the live DB (disk hit 100% during cold-start). Local has the full 4M-battle DB (18.6 GB) regardless.
 
 ## Operating principle (DEC-009)
 

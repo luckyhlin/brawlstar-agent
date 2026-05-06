@@ -93,6 +93,22 @@
 - Verified the dashboard refactor compiles cleanly; cache helpers (`read_cache`, `write_cache`) imported successfully.
 - Added `--remote-cache HOST` flag to `scripts/dashboard.py`: auto-rsyncs cache from a remote SSH host before launching. Makes the local-laptop workflow trivial — no SSH tunnel, no DB sync, just `uv run python scripts/dashboard.py --remote-cache brawl`. Falls back to local cache if rsync fails (offline-tolerant).
 
+### Session 8 (continued) — 2026-05-06 — Cold-start aftermath + v2 Run A + disk-full triage
+- **Cold-start crawl finished** 2026-05-06 ~02:40 UTC: 166,675 / 200,000 API calls done, **3,936,213 new battles** ingested, total **4,022,553 in DB** (51× growth over v1's 78k clean dataset). Crawl appears to have stopped at 166k because the droplet hit 100% disk.
+- **Droplet disk-full disaster** when user resumed cron timers + tried to rsync the DB:
+  - Live `rsync brawl:.../brawlstars.db local` produced a malformed local copy because writers were active (WAL pages not in main file). Wrote `scripts/rsync-db-from-droplet.sh` with two modes: `--backup-mode` (default, online-safe via `sqlite3 .backup`, needs ~DB-size scratch) and `--direct` (no scratch but requires writers stopped + WAL checkpointed).
+  - On droplet, `.backup` itself failed with `database or disk is full`. Recovery: stop timers → `PRAGMA wal_checkpoint(TRUNCATE)` → direct rsync to local (worked, ~3.5 min for 18.6 GB). Local DB integrity check passed, 4,022,553 battles confirmed.
+  - Documented all of this in `docs/deployment.md` § 16 fish/zellij gotcha table (added rsync corruption + fish heredoc rows). `scripts/rsync-db-from-droplet.sh --direct` is the new standard path.
+- **DB size diagnosis**: 18.6 GB on local. Estimated breakdown: ~13 GB is text `battle_id` (95-char strings replicated 7× per battle + across 4 indexes). Schema migration to a synthetic int `battle_id` would shrink ~60%. Filed as v3 work; not blocking.
+- **v2 Run A** (cutoff 2026-05-03, all post-fix-ingested data, no cap):
+  - 1,779,959 battles → 3,559,918 rows after both-perspective doubling
+  - Random split (n_test=711,982): Global 0.6614, Mode 0.6806, **ModeMap 0.6917**, **LogReg 0.6804**, **LightGBM 0.7382**
+  - Temporal CV (7 folds): Global 0.6531, ModeMap 0.6794, **LightGBM 0.7281**
+  - vs v1 baseline: LightGBM AUC +0.8pp random / +2.4pp temporal; LogReg +1.9pp (data alone helps the linear model more than the tree model — LightGBM was closer to the per-feature ceiling at v1 scale).
+  - LightGBM fit time: 405s vs v1's 8s — ~50× scale, ~50× time, linearly tractable.
+  - Reports: `reports/recommender_v2_default.json`, model: `models/recommender_v2_default.lgb.txt`.
+- **Pending in Session 8**: Run B (all-data, cutoff 2021-01-01), Run C (30-day window, cutoff 2026-04-06), top-K eval at the new scale, droplet shrinkage cleanup, decision on whether to update `CLEAN_CUTOFF_ISO` constant given the cold-start makes time-based filter unnecessarily conservative.
+
 ### Session 8 (continued) — 2026-05-04 late night — Cold-start in progress + droplet shell layering
 - Cold-start orchestrator launched on droplet inside tmux session `coldstart`. Phase 1 backup completed (~210k battles). Phase 2 stopped timers, deleted ~132k pre-cutoff battles, VACUUM'd, kicked off aggressive crawl in nohup at 3 qps.
 - Documented the shell layering on the droplet: fish auto-execs from `~/.bashrc` for TTY sessions only (`-t 1 && -z $NO_FISH && -z $INSIDE_FISH`), zellij installed alongside tmux. Login shell is **still bash** (no `chsh`) so the runbook stays accurate, `~/.bashrc` exports keep working, and `ssh brawl 'cmd'` automations never see fish.
