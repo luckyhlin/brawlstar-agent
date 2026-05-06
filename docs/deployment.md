@@ -502,9 +502,11 @@ The conditions:
 | `ssh brawl 'echo hi; date'` runs fine | No TTY allocated → `-t 1` false → no fish exec → bash runs the command. | Nothing to do. |
 | `ssh -t brawl 'sudo apt install foo'` errors with weird syntax | `-t` allocates a TTY → fish exec'd → fish tries to interpret bash syntax. | Drop `-t`, or `NO_FISH=1 ssh -t brawl '...'`, or `ssh -t brawl 'bash -c "..."'`. |
 | A future automation script that SSHes interactively gets a fish prompt instead of bash | Auto-exec fired. | `NO_FISH=1 ssh ...` or `ssh brawl bash -lc '...'`. |
+| `bash`-style heredoc fails in fish: `Expected a string, but found a redirection ... <<'EOF'` | You're in fish and pasted bash heredoc syntax. | Use a quoted multi-line string (works identically: `sqlite3 db "SELECT ...; SELECT ...;"`), or type `bash` first to drop into a bash subshell. |
 | systemd timers / services running fine | No terminal, `-t 1` false. systemd uses absolute paths and `Environment=` directives, never the user shell. | Unchanged. |
 | Migrations / re-deploys per this runbook | All examples are bash. They still work because the login shell is bash and `.bashrc` runs first. | Unchanged. |
 | `apt install` triggers needrestart prompts on the droplet | Should already be defused (Step 7). | If it does prompt, re-apply Step 7. |
+| `rsync brawl:.../brawlstars.db local.db` fails later with `database disk image is malformed` | rsync copied the main `.db` file mid-write while the WAL still held uncommitted pages. | Use `scripts/rsync-db-from-droplet.sh` (does `sqlite3 .backup` server-side first — online-safe, single self-contained file). |
 
 ### Why NOT `chsh -s /usr/bin/fish`
 
