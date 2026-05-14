@@ -101,11 +101,13 @@ def load_clean_battles(
             params.extend(modes)
 
         # Pull battles + battle_players in one go via JOIN.
-        # We ORDER BY so that within a battle, rows come out grouped by team_index.
+        # ORDER BY so that within a battle, rows come out sorted by (team_index, brawler_id).
+        # Per-brawler tuples (trophies, powers, player_tags) below rely on this row order.
         sql = f"""
             SELECT
                 b.battle_id, b.battle_time_iso, b.mode, b.map, b.battle_type,
-                bp.team_index, bp.brawler_id, bp.brawler_trophies, bp.result
+                bp.team_index, bp.brawler_id, bp.brawler_trophies, bp.brawler_power,
+                bp.player_tag, bp.result
             FROM battles b
             JOIN battle_players bp ON bp.battle_id = b.battle_id
             WHERE b.is_showdown = 0
@@ -123,14 +125,27 @@ def load_clean_battles(
     if df.empty:
         return df
 
-    # Group by (battle_id, team_index) → team rows
+    # NULL/missing power → 0 (tells the model "unknown / not max"). Most ranked
+    # play is at power 11, but ~20% of rows have lower levels (or NULL) and that
+    # is real signal — a power-1 brawler is way weaker than a power-11.
+    df["brawler_power"] = df["brawler_power"].fillna(0).astype(np.int8)
+    df["brawler_trophies"] = df["brawler_trophies"].fillna(0).astype(np.int32)
+    # `player_tag` should always be present for stored rows but defend just in case.
+    df["player_tag"] = df["player_tag"].fillna("").astype(str)
+
+    # Group by (battle_id, team_index) → team rows. Rows within a group are
+    # already sorted by brawler_id (SQL ORDER BY above), so the parallel
+    # `tuple` aggregations (trophies, powers, player_tags) stay aligned by brawler.
     grp = df.groupby(["battle_id", "team_index"], sort=False)
     teams = grp.agg(
         battle_time_iso=("battle_time_iso", "first"),
         mode=("mode", "first"),
         map=("map", "first"),
         battle_type=("battle_type", "first"),
-        brawlers=("brawler_id", lambda s: tuple(sorted(s.tolist()))),
+        brawlers=("brawler_id", lambda s: tuple(int(x) for x in s)),
+        trophies=("brawler_trophies", lambda s: tuple(int(x) for x in s)),
+        powers=("brawler_power", lambda s: tuple(int(x) for x in s)),
+        player_tags=("player_tag", lambda s: tuple(str(x) for x in s)),
         n_players=("brawler_id", "size"),
         trophies_mean=("brawler_trophies", "mean"),
         team_result=("result", "first"),  # all rows in a (battle, team) share same result post-fix
@@ -162,7 +177,10 @@ def load_clean_battles(
     t0 = t0[keep].reset_index(drop=True)
     t1 = t1[keep].reset_index(drop=True)
 
-    # Team A perspective = team0 first
+    # Team A perspective = team0 first.
+    # Per-brawler tuples (`team_a_trophies`, `team_a_powers`) are aligned with
+    # `team_a` by sort order, so `team_a[i]` is brawler whose trophies are
+    # `team_a_trophies[i]` and power level `team_a_powers[i]`.
     base = pd.DataFrame({
         "battle_id": t0["battle_id"].values,
         "battle_time_iso": t0["battle_time_iso"].values,
@@ -171,6 +189,12 @@ def load_clean_battles(
         "battle_type": t0["battle_type"].values,
         "team_a": t0["brawlers"].values,
         "team_b": t1["brawlers"].values,
+        "team_a_trophies": t0["trophies"].values,
+        "team_b_trophies": t1["trophies"].values,
+        "team_a_powers": t0["powers"].values,
+        "team_b_powers": t1["powers"].values,
+        "team_a_player_tags": t0["player_tags"].values,
+        "team_b_player_tags": t1["player_tags"].values,
         "team_a_wins": (t0["team_result"].values == "victory").astype(np.int8),
         "team_a_trophies_mean": t0["trophies_mean"].values,
         "team_b_trophies_mean": t1["trophies_mean"].values,
@@ -179,7 +203,6 @@ def load_clean_battles(
     if not expand_both_perspectives:
         return base
 
-    # Mirror perspective: team1 = team A
     mirror = pd.DataFrame({
         "battle_id": t0["battle_id"].values,
         "battle_time_iso": t0["battle_time_iso"].values,
@@ -188,6 +211,12 @@ def load_clean_battles(
         "battle_type": t0["battle_type"].values,
         "team_a": t1["brawlers"].values,
         "team_b": t0["brawlers"].values,
+        "team_a_trophies": t1["trophies"].values,
+        "team_b_trophies": t0["trophies"].values,
+        "team_a_powers": t1["powers"].values,
+        "team_b_powers": t0["powers"].values,
+        "team_a_player_tags": t1["player_tags"].values,
+        "team_b_player_tags": t0["player_tags"].values,
         "team_a_wins": (t1["team_result"].values == "victory").astype(np.int8),
         "team_a_trophies_mean": t1["trophies_mean"].values,
         "team_b_trophies_mean": t0["trophies_mean"].values,

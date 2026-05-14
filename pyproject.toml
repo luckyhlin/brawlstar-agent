@@ -17,6 +17,10 @@ dependencies = [
     "lightgbm>=4.6.0",
     "pandas>=3.0.2",
     "pyarrow>=24.0.0",
+    # cu121 max is torch 2.5.1 (PyTorch dropped cu121 wheels for ≥2.6; only
+    # cu124+ since then, which needs driver ≥550 — we run driver 535 / CUDA 12.2).
+    # Locked to >=2.5.0,<2.6 so a stray uv update can't accidentally pull cu124.
+    "torch>=2.5.0,<2.6",
 ]
 
 # Per-machine cache location is set via UV_CACHE_DIR env var (see docs/deployment.md).
@@ -29,3 +33,25 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/brawlstar_agent"]
+
+[tool.uv.sources]
+# Only torch comes from the PyTorch index; everything else (opencv, jupyter, etc.)
+# resolves from the default PyPI. Without this routing uv treats the PyTorch
+# index as the primary source for *every* package and fails on anything not
+# mirrored there ("only versions published on the first index that contains a
+# given package"). Switch the index name below to `pytorch-cpu` to revert to the
+# CPU build (e.g. on the droplet, where there is no GPU).
+torch = { index = "pytorch-cu121" }
+
+[[tool.uv.index]]
+name = "pytorch-cu121"
+# CUDA 12.1 wheel; works with NVIDIA driver 535+ (CUDA 12.2 API).
+# `explicit = true` means this index is only used for packages that name it via
+# `[tool.uv.sources]` above — never as a fallback for arbitrary packages.
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

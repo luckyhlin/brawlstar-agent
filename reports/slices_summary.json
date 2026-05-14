@@ -1,0 +1,385 @@
+{
+  "stable_test_after": "2026-05-05T00:00:00Z",
+  "cutoff": "2026-05-03T01:00:00Z",
+  "n_test_total": 1688302,
+  "models": {
+    "models/recommender_v2_default_fair": {
+      "kind": "lightgbm",
+      "elapsed_seconds": 9.862874269485474,
+      "slices": {
+        "all": {
+          "n": 1688302,
+          "auc": 0.7180843406595159,
+          "logloss": 0.6109070285733437,
+          "accuracy": 0.6489591317193251,
+          "brier": 0.21244068333951072,
+          "label_rate": 0.5
+        },
+        "ranked": {
+          "n": 1339788,
+          "auc": 0.7425760912428495,
+          "logloss": 0.5890897656539928,
+          "accuracy": 0.6671003173636426,
+          "brier": 0.20399791261567682,
+          "label_rate": 0.5
+        },
+        "soloRanked": {
+          "n": 348514,
+          "auc": 0.6116810093911054,
+          "logloss": 0.6947788588360915,
+          "accuracy": 0.5792191992287253,
+          "brier": 0.24489712096481114,
+          "label_rate": 0.5
+        },
+        "soloRanked_diamondplus": {
+          "n": 312714,
+          "auc": 0.606165410410562,
+          "logloss": 0.6970863597258106,
+          "accuracy": 0.575433143383411,
+          "brier": 0.24596446372859,
+          "label_rate": 0.5
+        },
+        "soloRanked_mythicplus": {
+          "n": 246372,
+          "auc": 0.604839827767993,
+          "logloss": 0.6969835166213738,
+          "accuracy": 0.5744321594986443,
+          "brier": 0.2460620503820542,
+          "label_rate": 0.5
+        },
+        "soloRanked_legendaryplus": {
+          "n": 108414,
+          "auc": 0.5938280897754327,
+          "logloss": 0.6970969495518999,
+          "accuracy": 0.5673160292951095,
+          "brier": 0.24703004673244106,
+          "label_rate": 0.5
+        }
+      }
+    },
+    "models/recommender_v2_phase1": {
+      "kind": "lightgbm",
+      "elapsed_seconds": 12.273268461227417,
+      "slices": {
+        "all": {
+          "n": 1688302,
+          "auc": 0.7609080203219443,
+          "logloss": 0.5642342700142741,
+          "accuracy": 0.6764648741753548,
+          "brier": 0.19520377097853545,
+          "label_rate": 0.5
+        },
+        "ranked": {
+          "n": 1339788,
+          "auc": 0.7909811004333747,
+          "logloss": 0.5346301568319576,
+          "accuracy": 0.699514400785796,
+          "brier": 0.18345949976452863,
+          "label_rate": 0.5
+        },
+        "soloRanked": {
+          "n": 348514,
+          "auc": 0.6252936487880427,
+          "logloss": 0.6780409910995373,
+          "accuracy": 0.5878558680569503,
+          "brier": 0.24035212553895993,
+          "label_rate": 0.5
+        },
+        "soloRanked_diamondplus": {
+          "n": 312714,
+          "auc": 0.6139422255639824,
+          "logloss": 0.68422619949359,
+          "accuracy": 0.5804473096823295,
+          "brier": 0.24305286972112847,
+          "label_rate": 0.5
+        },
+        "soloRanked_mythicplus": {
+          "n": 246372,
+          "auc": 0.6070450838661444,
+          "logloss": 0.6874912000177096,
+          "accuracy": 0.5758568343805303,
+          "brier": 0.24447688531290176,
+          "label_rate": 0.5
+        },
+        "soloRanked_legendaryplus": {
+          "n": 108414,
+          "auc": 0.5977968826790812,
+          "logloss": 0.6885011976552746,
+          "accuracy": 0.5676480897301086,
+          "brier": 0.24534945640612418,
+          "label_rate": 0.5
+        }
+      }
+    },
+    "models/recommender_v3_default": {
+      "kind": "transformer",
+      "elapsed_seconds": 125.28296065330505,
+      "slices": {
+        "all": {
+          "n": 1688302,
+          "auc": 0.7377991175133329,
+          "logloss": 0.5879127960676903,
+          "accuracy": 0.6617962900002488,
+          "brier": 0.20440134406089783,
+          "label_rate": 0.5
+        },
+        "ranked": {
+          "n": 1339788,
+          "auc": 0.7642429593838649,
+          "logloss": 0.5664183419902672,
+          "accuracy": 0.683356620599677,
+          "brier": 0.19538120925426483,
+          "label_rate": 0.5
+        },
+        "soloRanked": {
+          "n": 348514,
+          "auc": 0.6146912519470328,
+          "logloss": 0.6705436563472846,
+          "accuracy": 0.5789121814331706,
+          "brier": 0.2390774041414261,
+          "label_rate": 0.5
+        },
+        "soloRanked_diamondplus": {
+          "n": 312714,
+          "auc": 0.6044045894333513,
+          "logloss": 0.6747968506618099,
+          "accuracy": 0.572148992370025,
+          "brier": 0.24105986952781677,
+          "label_rate": 0.5
+        },
+        "soloRanked_mythicplus": {
+          "n": 246372,
+          "auc": 0.5937309540452522,
+          "logloss": 0.6784806200159537,
+          "accuracy": 0.5651738022177845,
+          "brier": 0.24281613528728485,
+          "label_rate": 0.5
+        },
+        "soloRanked_legendaryplus": {
+          "n": 108414,
+          "auc": 0.5785300629213526,
+          "logloss": 0.6827470591775822,
+          "accuracy": 0.5534525061338942,
+          "brier": 0.2448749989271164,
+          "label_rate": 0.5
+        }
+      }
+    },
+    "models/recommender_v3_phase1_default": {
+      "kind": "transformer",
+      "elapsed_seconds": 128.81202340126038,
+      "slices": {
+        "all": {
+          "n": 1688302,
+          "auc": 0.7540017467645561,
+          "logloss": 0.5696171188578552,
+          "accuracy": 0.6706442330815221,
+          "brier": 0.19746795296669006,
+          "label_rate": 0.5
+        },
+        "ranked": {
+          "n": 1339788,
+          "auc": 0.7838536224407489,
+          "logloss": 0.5433857476818893,
+          "accuracy": 0.6946793074725255,
+          "brier": 0.18664592504501343,
+          "label_rate": 0.5
+        },
+        "soloRanked": {
+          "n": 348514,
+          "auc": 0.6144615377803201,
+          "logloss": 0.6704580501406876,
+          "accuracy": 0.5782464979886031,
+          "brier": 0.23907096683979034,
+          "label_rate": 0.5
+        },
+        "soloRanked_diamondplus": {
+          "n": 312714,
+          "auc": 0.6033846420635743,
+          "logloss": 0.6753098479257837,
+          "accuracy": 0.5713687266959586,
+          "brier": 0.24130550026893616,
+          "label_rate": 0.5
+        },
+        "soloRanked_mythicplus": {
+          "n": 246372,
+          "auc": 0.59325955577753,
+          "logloss": 0.67894461532116,
+          "accuracy": 0.564707028396084,
+          "brier": 0.24302522838115692,
+          "label_rate": 0.5
+        },
+        "soloRanked_legendaryplus": {
+          "n": 108414,
+          "auc": 0.5785065225500298,
+          "logloss": 0.683169373383141,
+          "accuracy": 0.554467135240836,
+          "brier": 0.24507208168506622,
+          "label_rate": 0.5
+        }
+      }
+    },
+    "models/recommender_v3_big": {
+      "kind": "transformer",
+      "elapsed_seconds": 165.00248003005981,
+      "slices": {
+        "all": {
+          "n": 1688302,
+          "auc": 0.7635046060851839,
+          "logloss": 0.5615793352709696,
+          "accuracy": 0.6787357948992538,
+          "brier": 0.1943279355764389,
+          "label_rate": 0.5
+        },
+        "ranked": {
+          "n": 1339788,
+          "auc": 0.792913666893668,
+          "logloss": 0.5345523399004831,
+          "accuracy": 0.703047049234655,
+          "brier": 0.18328317999839783,
+          "label_rate": 0.5
+        },
+        "soloRanked": {
+          "n": 348514,
+          "auc": 0.6256363099099702,
+          "logloss": 0.6654788746680479,
+          "accuracy": 0.5852763447092513,
+          "brier": 0.23678715527057648,
+          "label_rate": 0.5
+        },
+        "soloRanked_diamondplus": {
+          "n": 312714,
+          "auc": 0.6130863773708586,
+          "logloss": 0.6715251423801114,
+          "accuracy": 0.5773710163280186,
+          "brier": 0.23951785266399384,
+          "label_rate": 0.5
+        },
+        "soloRanked_mythicplus": {
+          "n": 246372,
+          "auc": 0.6022313750681294,
+          "logloss": 0.6757322236591737,
+          "accuracy": 0.5706736155082558,
+          "brier": 0.24149923026561737,
+          "label_rate": 0.5
+        },
+        "soloRanked_legendaryplus": {
+          "n": 108414,
+          "auc": 0.5878999804903613,
+          "logloss": 0.6804624457789399,
+          "accuracy": 0.5596325197852676,
+          "brier": 0.24375884234905243,
+          "label_rate": 0.5
+        }
+      }
+    },
+    "models/recommender_v3_phase1_big": {
+      "kind": "transformer",
+      "elapsed_seconds": 171.99526286125183,
+      "slices": {
+        "all": {
+          "n": 1688302,
+          "auc": 0.7603417617451311,
+          "logloss": 0.565104167461778,
+          "accuracy": 0.6764790896415451,
+          "brier": 0.19551226496696472,
+          "label_rate": 0.5
+        },
+        "ranked": {
+          "n": 1339788,
+          "auc": 0.7895404050598323,
+          "logloss": 0.5387736721148938,
+          "accuracy": 0.7005272475943956,
+          "brier": 0.1846664547920227,
+          "label_rate": 0.5
+        },
+        "soloRanked": {
+          "n": 348514,
+          "auc": 0.6230349472395118,
+          "logloss": 0.6663261605519021,
+          "accuracy": 0.5840310575758793,
+          "brier": 0.23720666766166687,
+          "label_rate": 0.5
+        },
+        "soloRanked_diamondplus": {
+          "n": 312714,
+          "auc": 0.6098863767015389,
+          "logloss": 0.6726825906888451,
+          "accuracy": 0.5758392652711424,
+          "brier": 0.2400708943605423,
+          "label_rate": 0.5
+        },
+        "soloRanked_mythicplus": {
+          "n": 246372,
+          "auc": 0.5987622147415365,
+          "logloss": 0.6768990554134675,
+          "accuracy": 0.5687496955822902,
+          "brier": 0.24205996096134186,
+          "label_rate": 0.5
+        },
+        "soloRanked_legendaryplus": {
+          "n": 108414,
+          "auc": 0.5849459987656019,
+          "logloss": 0.6813511076557722,
+          "accuracy": 0.5587009057870754,
+          "brier": 0.24419322609901428,
+          "label_rate": 0.5
+        }
+      }
+    },
+    "models/recommender_v3_xl": {
+      "kind": "transformer",
+      "elapsed_seconds": 411.3863914012909,
+      "slices": {
+        "all": {
+          "n": 1688302,
+          "auc": 0.7673691355392638,
+          "logloss": 0.557299591396529,
+          "accuracy": 0.6821030834530789,
+          "brier": 0.19280165433883667,
+          "label_rate": 0.5
+        },
+        "ranked": {
+          "n": 1339788,
+          "auc": 0.7966334857247461,
+          "logloss": 0.5295979346063008,
+          "accuracy": 0.7059049640689422,
+          "brier": 0.18158404529094696,
+          "label_rate": 0.5
+        },
+        "soloRanked": {
+          "n": 348514,
+          "auc": 0.631179442400531,
+          "logloss": 0.6637927232295859,
+          "accuracy": 0.5906018122657913,
+          "brier": 0.2359253317117691,
+          "label_rate": 0.5
+        },
+        "soloRanked_diamondplus": {
+          "n": 312714,
+          "auc": 0.6207997697909167,
+          "logloss": 0.668799657807352,
+          "accuracy": 0.5840992088617715,
+          "brier": 0.2382107973098755,
+          "label_rate": 0.5
+        },
+        "soloRanked_mythicplus": {
+          "n": 246372,
+          "auc": 0.6108660691465135,
+          "logloss": 0.6728579202321237,
+          "accuracy": 0.5776995762505479,
+          "brier": 0.24011574685573578,
+          "label_rate": 0.5
+        },
+        "soloRanked_legendaryplus": {
+          "n": 108414,
+          "auc": 0.5985812612193819,
+          "logloss": 0.6773971212013286,
+          "accuracy": 0.5694836460235763,
+          "brier": 0.24227772653102875,
+          "label_rate": 0.5
+        }
+      }
+    }
+  }
+}

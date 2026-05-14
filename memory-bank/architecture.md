@@ -14,11 +14,13 @@
 │   ├── analytics.py            # Win rate queries (brawler, combo, matchup, synergy)
 │   ├── models.py               # Statistical baselines: Wilson CI, tier-adjusted WR, score_brawlers
 │   ├── dashboard_data.py       # Shared analytics collection + cache read/write (used by dashboard + precompute cron)
-│   ├── recommender/            # Phase-6 brawler-pick recommendation models (Session 8)
+│   ├── recommender/            # Phase-6 brawler-pick recommendation models (Sessions 8-9)
 │   │   ├── dataset.py          # Clean-window loader + perspective-doubling + splits + name resolver
+│   │   │                       #  v3 added per-brawler trophy + power tuples (backwards compat)
 │   │   ├── features.py         # TeamFeaturizer (sparse + dense modes for sklearn / LGBM)
 │   │   ├── baselines.py        # Random / TrophyOnly / Global / Mode / ModeMap baselines
 │   │   ├── team_model.py       # LogRegTeamModel + LGBMTeamModel + evaluate + save/load
+│   │   ├── transformer_model.py # v3: TransformerTeamModel attention NN (CPU PyTorch) + save/load
 │   │   ├── inference.py        # rank_brawlers_for_map / complete_team / last_pick
 │   │   ├── cv.py               # Sliding temporal-fold harness
 │   │   └── topk_eval.py        # Top-K recommendation eval: hit@K, MRR, win-rate uplift
@@ -44,9 +46,10 @@
 │   ├── precompute-analytics.py # CLI: writes data/analytics_cache.json (every 1h on droplet, with 45 min watchdog)
 │   ├── analyze-battles.py      # CLI: run analytics queries on collected data
 │   ├── dashboard.py            # Local web dashboard; --remote-cache HOST rsyncs cache from droplet on launch
-│   ├── train-recommender.py    # End-to-end train + eval; --cutoff makes it re-runnable monthly
+│   ├── train-recommender.py    # End-to-end train + eval (v1/v2 LightGBM); --cutoff + --stable-test-after
+│   ├── train-recommender-v3.py # v3: end-to-end train + eval for TransformerTeamModel
 │   ├── analyze-recommender.py  # Plots, feature importance, DAMIAN deep-dive from saved report
-│   └── eval-topk.py            # Top-K recommendation eval: hit@K, MRR, win uplift
+│   └── eval-topk.py            # Top-K recommendation eval; --transformer-from PATH adds v3 to compare
 ├── capture/
 │   ├── clips/                  # Downloaded YouTube videos
 │   ├── frames/                 # Extracted frames + review manifests per clip
@@ -63,10 +66,17 @@
 ├── notebooks/
 │   └── recommender_v1.ipynb    # Executed companion to docs/recommender-v1.md
 ├── models/
-│   ├── recommender_v1.lgb.txt  # Trained LightGBM (git-ignored via *.bin et al.)
-│   └── recommender_v1.meta.json
+│   ├── recommender_v1.lgb.txt              # v1 LightGBM (gitignored via *.lgb.txt)
+│   ├── recommender_v2_default_fair.lgb.txt # v2 A_fair LightGBM
+│   ├── recommender_v2_30d_fair.lgb.txt     # v2 C_fair LightGBM (technical-best v2)
+│   ├── recommender_v3_default.pt           # v3 transformer state dict (production candidate)
+│   ├── recommender_v3_default.meta.json    # v3 vocab + arch hyperparams
+│   └── *.meta.json                         # one per model
 ├── reports/
-│   ├── recommender_v1.json     # Latest train+eval metrics
+│   ├── recommender_v1.json + recommender_v1_topk.json
+│   ├── recommender_v2_*_fair.json + recommender_v2_topk.json
+│   ├── recommender_v3_default.json         # v3 binary metrics + per-mode + history
+│   ├── recommender_v3_topk.json            # v3 top-K + winners-only
 │   └── recommender_v1/         # Plots and DAMIAN deep-dive
 ├── logs/                       # Pipeline logs
 └── docs/
@@ -75,6 +85,8 @@
     ├── deployment.md           # Fresh-VPS deploy runbook (DigitalOcean)
     ├── analytics-notes.md      # Handoff guide for ML/analytics on the battle data
     ├── recommender-v1.md       # Phase-6 v1 methodology, results, and how-to-retrain
+    ├── recommender-v2.md       # Phase-6 v2: DEC-011 stable test, fair-run comparison
+    ├── recommender-v3.md       # Phase-6 v3: attention transformer (current production)
     └── api-examples/           # Live API responses (git-ignored)
 ```
 

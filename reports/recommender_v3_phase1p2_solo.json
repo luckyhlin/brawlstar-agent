@@ -1,0 +1,185 @@
+{
+  "model": "TransformerTeamModel",
+  "cutoff": "2026-05-03T01:00:00Z",
+  "before": null,
+  "n_rows_total": 697420,
+  "n_battles": 348710,
+  "earliest": "2026-05-03T01:00:03+00:00",
+  "latest": "2026-05-06T04:21:55+00:00",
+  "seed": 42,
+  "split_mode": "stable_test",
+  "stable_test_after": "2026-05-05T00:00:00Z",
+  "n_train_rows": 348906,
+  "n_test_rows": 348514,
+  "n_train_battles": 174453,
+  "n_test_battles": 174257,
+  "arch": {
+    "d_model": 96,
+    "nhead": 4,
+    "ff": 192,
+    "num_layers": 3,
+    "dropout": 0.1
+  },
+  "training": {
+    "epochs": 6,
+    "batch_size": 4096,
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "early_stop_patience": 2,
+    "device": "cuda",
+    "use_team_aggregates": true,
+    "use_time_features": true,
+    "battle_types": [
+      "soloRanked"
+    ]
+  },
+  "stable_test": {
+    "Transformer": {
+      "auc": 0.6014004348925758,
+      "logloss": 0.6753912284562508,
+      "accuracy": 0.570261165978985,
+      "brier": 0.24138857424259186,
+      "n": 348514,
+      "fit_seconds": 124.96283221244812
+    }
+  },
+  "per_mode": {
+    "Transformer": {
+      "bounty": {
+        "auc": 0.5692259356316727,
+        "logloss": 0.6847949133678747,
+        "accuracy": 0.550650708388911,
+        "brier": 0.24588975310325623,
+        "n": 55478
+      },
+      "brawlBall": {
+        "auc": 0.5765385919680077,
+        "logloss": 0.6830403703243239,
+        "accuracy": 0.5514643267059128,
+        "brier": 0.24509604275226593,
+        "n": 54018
+      },
+      "gemGrab": {
+        "auc": 0.5875734679710105,
+        "logloss": 0.6803614169424965,
+        "accuracy": 0.5593159890378046,
+        "brier": 0.24378074705600739,
+        "n": 53274
+      },
+      "heist": {
+        "auc": 0.6428644802598582,
+        "logloss": 0.6595565718253059,
+        "accuracy": 0.6001947419668938,
+        "brier": 0.23384402692317963,
+        "n": 51350
+      },
+      "hotZone": {
+        "auc": 0.6307294229047082,
+        "logloss": 0.665640232270645,
+        "accuracy": 0.5925010825543188,
+        "brier": 0.23665975034236908,
+        "n": 78518
+      },
+      "knockout": {
+        "auc": 0.5805136728028228,
+        "logloss": 0.6821759555173345,
+        "accuracy": 0.5595783520652874,
+        "brier": 0.2446332573890686,
+        "n": 55876
+      }
+    }
+  },
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 0.6926681198742728,
+      "val_loss": 0.688029476290787,
+      "val_auc": 0.5801086097291694,
+      "elapsed_s": 9.514968395233154
+    },
+    {
+      "epoch": 2,
+      "train_loss": 0.683797253207289,
+      "val_loss": 0.6795401536440794,
+      "val_auc": 0.6025650548122135,
+      "elapsed_s": 9.541136980056763
+    },
+    {
+      "epoch": 3,
+      "train_loss": 0.6772155159599645,
+      "val_loss": 0.6722025585262779,
+      "val_auc": 0.6122956517597133,
+      "elapsed_s": 9.539436340332031
+    },
+    {
+      "epoch": 4,
+      "train_loss": 0.6729682010273625,
+      "val_loss": 0.6705634857157512,
+      "val_auc": 0.6145863911728864,
+      "elapsed_s": 9.574679613113403
+    },
+    {
+      "epoch": 5,
+      "train_loss": 0.6708793494392958,
+      "val_loss": 0.6691877941534152,
+      "val_auc": 0.6164705088470213,
+      "elapsed_s": 9.568366050720215
+    },
+    {
+      "epoch": 6,
+      "train_loss": 0.6700369958693985,
+      "val_loss": 0.6690494090165545,
+      "val_auc": 0.6169148005844133,
+      "elapsed_s": 9.565368175506592
+    }
+  ],
+  "stable_test_slices": {
+    "Transformer": {
+      "all": {
+        "n": 348514,
+        "auc": 0.6014004348925758,
+        "logloss": 0.6753912284562508,
+        "accuracy": 0.570261165978985,
+        "brier": 0.24138857424259186,
+        "label_rate": 0.5
+      },
+      "ranked": {
+        "n": 0,
+        "skipped": true,
+        "reason": "too_few_rows"
+      },
+      "soloRanked": {
+        "n": 348514,
+        "auc": 0.6014004348925758,
+        "logloss": 0.6753912284562508,
+        "accuracy": 0.570261165978985,
+        "brier": 0.24138857424259186,
+        "label_rate": 0.5
+      },
+      "soloRanked_diamondplus": {
+        "n": 312714,
+        "auc": 0.5905115503521121,
+        "logloss": 0.6797321162436505,
+        "accuracy": 0.5637835210447886,
+        "brier": 0.2434089183807373,
+        "label_rate": 0.5
+      },
+      "soloRanked_mythicplus": {
+        "n": 246372,
+        "auc": 0.5802432039043077,
+        "logloss": 0.6829660749600933,
+        "accuracy": 0.5574700047083272,
+        "brier": 0.24496416747570038,
+        "label_rate": 0.5
+      },
+      "soloRanked_legendaryplus": {
+        "n": 108414,
+        "auc": 0.5694584875941734,
+        "logloss": 0.6860787197419177,
+        "accuracy": 0.5504178427140406,
+        "brier": 0.24646826088428497,
+        "label_rate": 0.5
+      }
+    }
+  }
+}

@@ -557,5 +557,20 @@ battle.teams        → [[Player, Player] × 5]
 
 ### Ranked Types
 
-- `"ranked"` — Trophy-based ladder, shows `trophyChange` (can be negative)
-- `"soloRanked"` — Competitive mode, trophies show as 7-8 (rank points, not trophy trophies), no `trophyChange` field
+> **Important — API names are flipped from the in-game UI.** Read these literally, not by what they sound like:
+
+| API `battle.type` | In-game UI | What it is |
+|---|---|---|
+| `ranked` | **Trophy Battles** ("unranked", casual) | Trophy ladder. Free pick, **no bans**. `trophyChange` present (`brawler.trophies` is real per-brawler trophy count). All modes incl. Showdown. |
+| `soloRanked` | **Ranked** (competitive) | Tier ladder: Bronze → Silver → Gold → Diamond → Mythic → Legendary → Masters → Pro. **Ban-pick draft after a certain rank tier** (Diamond+ per common knowledge). `brawler.trophies` here is the **rank tier index (1‑22), NOT trophies**. No `trophyChange`. Locked to 6 modes: gemGrab, brawlBall, knockout, bounty, hotZone, heist. |
+| `friendly` | Friendly / club friendly | brawler.trophies = −1, no trophyChange. Different player population. |
+| `challenge` | Championship / event challenges | brawler.trophies = challenge progression counter, trophyChange = 1 win counter. |
+| `tournament` | Player-organized tournaments | Small volume. brawler.trophies = −1. |
+| (absent / null) | PvE events (e.g. `lastStand` on "BOSS CROW") | API omits `type` entirely. Filter out for 3v3 analytics. |
+
+**Bans are NOT exposed in the battlelog response** — even for `soloRanked` rows where the in-game draft includes bans, the API only returns the 6 *picked* brawlers. Any meta analysis built off `soloRanked` data is implicitly conditioning on the post-ban candidate set without knowing what was banned.
+
+The three reliable signals to discriminate `ranked` vs `soloRanked` from a single Battle object (without trusting the `type` field):
+1. **`trophyChange` field**: present on most `ranked` 3v3 rows; always absent on `soloRanked`.
+2. **`brawler.trophies` magnitude**: tens-to-thousands range → `ranked`; 1‑22 → `soloRanked` (rank tier index).
+3. **Mode set**: Showdown / Duels / 5v5 / Volley / Basket / Wipeout → can only be `ranked`. soloRanked is the 6-mode rotation only.

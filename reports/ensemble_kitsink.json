@@ -1,0 +1,404 @@
+{
+  "model_a": "recommender_v2_phase1p4 (LGBM, Run F)",
+  "model_b": "recommender_v3_phase1p2p4_xl (Transformer, Run K)",
+  "cutoff": "2026-05-03T01:00:00Z",
+  "stable_test_after": "2026-05-05T00:00:00Z",
+  "n_test_rows": 1694972,
+  "n_test_battles": 847486,
+  "sweep": [
+    {
+      "alpha_lgbm": 0.0,
+      "alpha_xfr": 1.0,
+      "auc_all": 0.7744980349813433,
+      "auc_mythicplus": 0.6180412737275047,
+      "logloss_all": 0.5506771057800736,
+      "logloss_mythicplus": 0.6725391806505883
+    },
+    {
+      "alpha_lgbm": 0.025,
+      "alpha_xfr": 0.975,
+      "auc_all": 0.774897573653613,
+      "auc_mythicplus": 0.6186753614560389,
+      "logloss_all": 0.5501684222611735,
+      "logloss_mythicplus": 0.6719625560672832
+    },
+    {
+      "alpha_lgbm": 0.05,
+      "alpha_xfr": 0.95,
+      "auc_all": 0.7752819303671251,
+      "auc_mythicplus": 0.619292232175986,
+      "logloss_all": 0.5497022749116293,
+      "logloss_mythicplus": 0.6714291049777634
+    },
+    {
+      "alpha_lgbm": 0.075,
+      "alpha_xfr": 0.925,
+      "auc_all": 0.7756505581367612,
+      "auc_mythicplus": 0.6198903179909159,
+      "logloss_all": 0.5492743968612147,
+      "logloss_mythicplus": 0.6709378260580324
+    },
+    {
+      "alpha_lgbm": 0.1,
+      "alpha_xfr": 0.9,
+      "auc_all": 0.7760028224340267,
+      "auc_mythicplus": 0.620467167268975,
+      "logloss_all": 0.5488822718782442,
+      "logloss_mythicplus": 0.6704878242735247
+    },
+    {
+      "alpha_lgbm": 0.125,
+      "alpha_xfr": 0.875,
+      "auc_all": 0.7763376336967279,
+      "auc_mythicplus": 0.6210191658581488,
+      "logloss_all": 0.5485240861120199,
+      "logloss_mythicplus": 0.670078297314009
+    },
+    {
+      "alpha_lgbm": 0.15,
+      "alpha_xfr": 0.85,
+      "auc_all": 0.7766542299780241,
+      "auc_mythicplus": 0.6215457493354921,
+      "logloss_all": 0.5481984240900476,
+      "logloss_mythicplus": 0.6697085248469816
+    },
+    {
+      "alpha_lgbm": 0.175,
+      "alpha_xfr": 0.825,
+      "auc_all": 0.7769517350616726,
+      "auc_mythicplus": 0.6220409630883582,
+      "logloss_all": 0.5479041315788097,
+      "logloss_mythicplus": 0.6693778598684822
+    },
+    {
+      "alpha_lgbm": 0.2,
+      "alpha_xfr": 0.8,
+      "auc_all": 0.7772292898108581,
+      "auc_mythicplus": 0.6225067359077777,
+      "logloss_all": 0.5476402410043512,
+      "logloss_mythicplus": 0.6690857216563548
+    },
+    {
+      "alpha_lgbm": 0.225,
+      "alpha_xfr": 0.775,
+      "auc_all": 0.7774859924660787,
+      "auc_mythicplus": 0.6229388335343327,
+      "logloss_all": 0.5474059260968778,
+      "logloss_mythicplus": 0.668831589976186
+    },
+    {
+      "alpha_lgbm": 0.25,
+      "alpha_xfr": 0.75,
+      "auc_all": 0.7777208568132876,
+      "auc_mythicplus": 0.6233345059465492,
+      "logloss_all": 0.5472004721437422,
+      "logloss_mythicplus": 0.6686150002867578
+    },
+    {
+      "alpha_lgbm": 0.275,
+      "alpha_xfr": 0.725,
+      "auc_all": 0.7779328229255411,
+      "auc_mythicplus": 0.6236896317695981,
+      "logloss_all": 0.547023255386509,
+      "logloss_mythicplus": 0.6684355397581866
+    },
+    {
+      "alpha_lgbm": 0.3,
+      "alpha_xfr": 0.7,
+      "auc_all": 0.7781211891874351,
+      "auc_mythicplus": 0.624003235108629,
+      "logloss_all": 0.5468737281552364,
+      "logloss_mythicplus": 0.6682928439626902
+    },
+    {
+      "alpha_lgbm": 0.325,
+      "alpha_xfr": 0.675,
+      "auc_all": 0.7782848892994377,
+      "auc_mythicplus": 0.6242727685149798,
+      "logloss_all": 0.5467514077998763,
+      "logloss_mythicplus": 0.6681865941317799
+    },
+    {
+      "alpha_lgbm": 0.35,
+      "alpha_xfr": 0.65,
+      "auc_all": 0.7784230532953718,
+      "auc_mythicplus": 0.6244996837385024,
+      "logloss_all": 0.5466558682457372,
+      "logloss_mythicplus": 0.6681165148987376
+    },
+    {
+      "alpha_lgbm": 0.375,
+      "alpha_xfr": 0.625,
+      "auc_all": 0.7785346264805821,
+      "auc_mythicplus": 0.6246792705329797,
+      "logloss_all": 0.5465867334291391,
+      "logloss_mythicplus": 0.668082372464241
+    },
+    {
+      "alpha_lgbm": 0.4,
+      "alpha_xfr": 0.6,
+      "auc_all": 0.7786187837016774,
+      "auc_mythicplus": 0.6248068931178021,
+      "logloss_all": 0.5465436721230319,
+      "logloss_mythicplus": 0.6680839731377614
+    },
+    {
+      "alpha_lgbm": 0.425,
+      "alpha_xfr": 0.575,
+      "auc_all": 0.7786748956067593,
+      "auc_mythicplus": 0.6248851797335208,
+      "logloss_all": 0.54652639381928,
+      "logloss_mythicplus": 0.6681211622191052
+    },
+    {
+      "alpha_lgbm": 0.45,
+      "alpha_xfr": 0.55,
+      "auc_all": 0.7787017797375346,
+      "auc_mythicplus": 0.6249091734748311,
+      "logloss_all": 0.5465346454352877,
+      "logloss_mythicplus": 0.6681938231941071
+    },
+    {
+      "alpha_lgbm": 0.475,
+      "alpha_xfr": 0.525,
+      "auc_all": 0.7786987127753211,
+      "auc_mythicplus": 0.6248789516409878,
+      "logloss_all": 0.5465682086799166,
+      "logloss_mythicplus": 0.6683018772266442
+    },
+    {
+      "alpha_lgbm": 0.5,
+      "alpha_xfr": 0.5,
+      "auc_all": 0.7786650172681984,
+      "auc_mythicplus": 0.6247944582180381,
+      "logloss_all": 0.546626897959961,
+      "logloss_mythicplus": 0.6684452829363112
+    },
+    {
+      "alpha_lgbm": 0.525,
+      "alpha_xfr": 0.475,
+      "auc_all": 0.7785998871777547,
+      "auc_mythicplus": 0.6246489288951766,
+      "logloss_all": 0.5467105587413519,
+      "logloss_mythicplus": 0.6686240364576815
+    },
+    {
+      "alpha_lgbm": 0.55,
+      "alpha_xfr": 0.44999999999999996,
+      "auc_all": 0.7785025581317504,
+      "auc_mythicplus": 0.6244451226561096,
+      "logloss_all": 0.5468190663034564,
+      "logloss_mythicplus": 0.6688381717833786
+    },
+    {
+      "alpha_lgbm": 0.575,
+      "alpha_xfr": 0.42500000000000004,
+      "auc_all": 0.7783720591298751,
+      "auc_mythicplus": 0.6241743037624978,
+      "logloss_all": 0.5469523248433179,
+      "logloss_mythicplus": 0.6690877613995341
+    },
+    {
+      "alpha_lgbm": 0.6,
+      "alpha_xfr": 0.4,
+      "auc_all": 0.7782080287905526,
+      "auc_mythicplus": 0.623838078562702,
+      "logloss_all": 0.5471102669014656,
+      "logloss_mythicplus": 0.6693729172288688
+    },
+    {
+      "alpha_lgbm": 0.625,
+      "alpha_xfr": 0.375,
+      "auc_all": 0.778009586121929,
+      "auc_mythicplus": 0.623428855255091,
+      "logloss_all": 0.5472928530934477,
+      "logloss_mythicplus": 0.6696937919039472
+    },
+    {
+      "alpha_lgbm": 0.65,
+      "alpha_xfr": 0.35,
+      "auc_all": 0.7777763544284458,
+      "auc_mythicplus": 0.6229475964888629,
+      "logloss_all": 0.547500072142583,
+      "logloss_mythicplus": 0.6700505804014621
+    },
+    {
+      "alpha_lgbm": 0.675,
+      "alpha_xfr": 0.32499999999999996,
+      "auc_all": 0.7775077919092392,
+      "auc_mythicplus": 0.622386486274779,
+      "logloss_all": 0.5477319412205474,
+      "logloss_mythicplus": 0.6704435220781558
+    },
+    {
+      "alpha_lgbm": 0.7,
+      "alpha_xfr": 0.30000000000000004,
+      "auc_all": 0.7772032043601536,
+      "auc_mythicplus": 0.6217432816164838,
+      "logloss_all": 0.5479885066141922,
+      "logloss_mythicplus": 0.6708729031607203
+    },
+    {
+      "alpha_lgbm": 0.725,
+      "alpha_xfr": 0.275,
+      "auc_all": 0.7768619467045784,
+      "auc_mythicplus": 0.6210114953074901,
+      "logloss_all": 0.5482698447504847,
+      "logloss_mythicplus": 0.671339059756481
+    },
+    {
+      "alpha_lgbm": 0.75,
+      "alpha_xfr": 0.25,
+      "auc_all": 0.7764837741123295,
+      "auc_mythicplus": 0.6201849534899506,
+      "logloss_all": 0.5485760636279469,
+      "logloss_mythicplus": 0.6718423814698227
+    },
+    {
+      "alpha_lgbm": 0.775,
+      "alpha_xfr": 0.22499999999999998,
+      "auc_all": 0.7760682207078156,
+      "auc_mythicplus": 0.6192595736693091,
+      "logloss_all": 0.5489073047242731,
+      "logloss_mythicplus": 0.6723833157325281
+    },
+    {
+      "alpha_lgbm": 0.8,
+      "alpha_xfr": 0.19999999999999996,
+      "auc_all": 0.7756150547527135,
+      "auc_mythicplus": 0.6182315977047437,
+      "logloss_all": 0.5492637454786511,
+      "logloss_mythicplus": 0.6729623729863742
+    },
+    {
+      "alpha_lgbm": 0.825,
+      "alpha_xfr": 0.17500000000000004,
+      "auc_all": 0.7751239587620952,
+      "auc_mythicplus": 0.6170969771713612,
+      "logloss_all": 0.54964560248798,
+      "logloss_mythicplus": 0.6735801328962067
+    },
+    {
+      "alpha_lgbm": 0.85,
+      "alpha_xfr": 0.15000000000000002,
+      "auc_all": 0.7745950371520066,
+      "auc_mythicplus": 0.6158516835456962,
+      "logloss_all": 0.5500531356157843,
+      "logloss_mythicplus": 0.6742372518253518
+    },
+    {
+      "alpha_lgbm": 0.875,
+      "alpha_xfr": 0.125,
+      "auc_all": 0.7740279473495443,
+      "auc_mythicplus": 0.614494510946199,
+      "logloss_all": 0.5504866533035112,
+      "logloss_mythicplus": 0.6749344718786895
+    },
+    {
+      "alpha_lgbm": 0.9,
+      "alpha_xfr": 0.09999999999999998,
+      "auc_all": 0.7734232136013685,
+      "auc_mythicplus": 0.6130282584889253,
+      "logloss_all": 0.5509465195186526,
+      "logloss_mythicplus": 0.6756726319214295
+    },
+    {
+      "alpha_lgbm": 0.925,
+      "alpha_xfr": 0.07499999999999996,
+      "auc_all": 0.7727808437851504,
+      "auc_mythicplus": 0.6114470501784577,
+      "logloss_all": 0.5514331630168258,
+      "logloss_mythicplus": 0.6764526811286004
+    },
+    {
+      "alpha_lgbm": 0.95,
+      "alpha_xfr": 0.050000000000000044,
+      "auc_all": 0.7721013843214286,
+      "auc_mythicplus": 0.6097542361104487,
+      "logloss_all": 0.5519470900282321,
+      "logloss_mythicplus": 0.6772756958361881
+    },
+    {
+      "alpha_lgbm": 0.975,
+      "alpha_xfr": 0.025000000000000022,
+      "auc_all": 0.7713852725532513,
+      "auc_mythicplus": 0.6079532357719528,
+      "logloss_all": 0.5524889023183271,
+      "logloss_mythicplus": 0.678142900792207
+    },
+    {
+      "alpha_lgbm": 1.0,
+      "alpha_xfr": 0.0,
+      "auc_all": 0.7706329628759443,
+      "auc_mythicplus": 0.6060430925105598,
+      "logloss_all": 0.5530593243911407,
+      "logloss_mythicplus": 0.6790556964212373
+    }
+  ],
+  "best_by_all_auc": {
+    "alpha_lgbm": 0.45,
+    "auc_all": 0.7787017797375346,
+    "auc_mythicplus": 0.6249091734748311
+  },
+  "best_by_mythicplus_auc": {
+    "alpha_lgbm": 0.45,
+    "auc_all": 0.7787017797375346,
+    "auc_mythicplus": 0.6249091734748311
+  },
+  "slice_breakdown_at_best_mythicplus": [
+    {
+      "slice": "all",
+      "n": 1694972,
+      "auc": 0.7787017797375346,
+      "logloss": 0.5465346454352877,
+      "auc_lgbm_only": 0.7706329628759443,
+      "auc_xfr_only": 0.7744980349813433,
+      "ensemble_delta_vs_xfr_pp": 0.4203744756191341
+    },
+    {
+      "slice": "ranked",
+      "n": 1346458,
+      "auc": 0.8063792062572864,
+      "logloss": 0.5188187717784261,
+      "auc_lgbm_only": 0.8006849126627194,
+      "auc_xfr_only": 0.8025178247693628,
+      "ensemble_delta_vs_xfr_pp": 0.38613814879235875
+    },
+    {
+      "slice": "soloRanked",
+      "n": 348514,
+      "auc": 0.6500717501935744,
+      "logloss": 0.653612868440018,
+      "auc_lgbm_only": 0.6304666623692614,
+      "auc_xfr_only": 0.6443935983645097,
+      "ensemble_delta_vs_xfr_pp": 0.5678151829064726
+    },
+    {
+      "slice": "soloRanked_diamondplus",
+      "n": 312714,
+      "auc": 0.633769286081417,
+      "logloss": 0.664037114310541,
+      "auc_lgbm_only": 0.6143066784253128,
+      "auc_xfr_only": 0.6276299101243545,
+      "ensemble_delta_vs_xfr_pp": 0.6139375957062487
+    },
+    {
+      "slice": "soloRanked_mythicplus",
+      "n": 246372,
+      "auc": 0.6249091734748311,
+      "logloss": 0.6681938231941071,
+      "auc_lgbm_only": 0.6060430925105598,
+      "auc_xfr_only": 0.6180412737275047,
+      "ensemble_delta_vs_xfr_pp": 0.6867899747326378
+    },
+    {
+      "slice": "soloRanked_legendaryplus",
+      "n": 108414,
+      "auc": 0.613870164397141,
+      "logloss": 0.6722467568880084,
+      "auc_lgbm_only": 0.5965261596792846,
+      "auc_xfr_only": 0.605421476939872,
+      "ensemble_delta_vs_xfr_pp": 0.8448687457269011
+    }
+  ]
+}

@@ -38,13 +38,29 @@ class LogRegTeamModel:
     """Logistic regression on sparse multi-hot team features."""
     C: float = 1.0
     max_iter: int = 200
+    # Phase-1/2/4 toggles are accepted for symmetry with LGBM but are no-ops
+    # for LogReg today (transform_sparse is unchanged). LogReg saturates
+    # around AUC 0.68 in v2 fair runs, so adding more numeric features without
+    # interactions doesn't help; flagged-but-unused keeps the CLI uniform.
+    include_team_aggregates: bool = False
+    include_time_features: bool = False
+    include_history_features: bool = False
     featurizer: TeamFeaturizer | None = None
     model: LogisticRegression | None = None
 
-    def fit(self, df: pd.DataFrame, y: np.ndarray | None = None) -> "LogRegTeamModel":
+    def fit(
+        self,
+        df: pd.DataFrame,
+        y: np.ndarray | None = None,
+        history_df: pd.DataFrame | None = None,
+    ) -> "LogRegTeamModel":
         if y is None:
             y = df["team_a_wins"].values
-        f = TeamFeaturizer().fit(df)
+        f = TeamFeaturizer(
+            include_team_aggregates=self.include_team_aggregates,
+            include_time_features=self.include_time_features,
+            include_history_features=self.include_history_features,
+        ).fit(df, history_df=history_df)
         X = f.transform_sparse(df)
         m = LogisticRegression(
             C=self.C,
@@ -94,6 +110,19 @@ class LGBMTeamModel:
     reg_lambda: float = 1.0
     seed: int = 42
     early_stopping_rounds: int = 30
+    # Phase-1 toggle: when True, the featurizer appends 23 per-team
+    # trophy/power aggregates to the dense feature matrix (see
+    # `features.compute_team_aggregates`). Default False keeps every prior
+    # saved model loadable / re-trainable with the same shape.
+    include_team_aggregates: bool = False
+    # Phase-2 toggle: 12 cyclical-time + per-team `days_since_release`
+    # aggregates. Composable with phase-1.
+    include_time_features: bool = False
+    # Phase-4 toggle: 20 per-team aggregates of per-player history stats
+    # (n_games, overall_wr, brawler-pair counts/wr, main-brawler alignment).
+    # Requires `team_a/b_player_tags` on the input DataFrame; the lookup is
+    # fit on training data and round-tripped via save/load.
+    include_history_features: bool = False
     featurizer: TeamFeaturizer | None = None
     model: Optional["lgb.Booster"] = None  # type: ignore[name-defined]
     cat_cols: list[int] = field(default_factory=list)
@@ -104,13 +133,18 @@ class LGBMTeamModel:
         y: np.ndarray | None = None,
         valid_df: pd.DataFrame | None = None,
         valid_y: np.ndarray | None = None,
+        history_df: pd.DataFrame | None = None,
     ) -> "LGBMTeamModel":
         if not HAS_LGB:
             raise RuntimeError("LightGBM is not installed")
         if y is None:
             y = df["team_a_wins"].values
 
-        f = TeamFeaturizer().fit(df)
+        f = TeamFeaturizer(
+            include_team_aggregates=self.include_team_aggregates,
+            include_time_features=self.include_time_features,
+            include_history_features=self.include_history_features,
+        ).fit(df, history_df=history_df)
         X, cat_cols = f.transform_dense(df)
 
         # Internal validation split if no explicit one given
@@ -165,11 +199,19 @@ def evaluate(
     model,
     test_df: pd.DataFrame,
     label_col: str = "team_a_wins",
+    proba: np.ndarray | None = None,
 ) -> dict:
-    """Standard binary metrics for our team-prediction setting."""
+    """Standard binary metrics for our team-prediction setting.
+
+    If `proba` is given, skip the (potentially expensive for the transformer)
+    `model.predict_proba(test_df)` call and reuse the supplied probabilities.
+    Lets train scripts compute predictions once and pipe them into both
+    `evaluate` and `evaluate_slices` without re-tensorizing.
+    """
     from sklearn.metrics import roc_auc_score, log_loss, accuracy_score, brier_score_loss
 
-    proba = model.predict_proba(test_df)
+    if proba is None:
+        proba = model.predict_proba(test_df)
     y = test_df[label_col].values
     proba_clip = np.clip(proba, 1e-3, 1.0 - 1e-3)
     return {
@@ -194,14 +236,37 @@ def save_model(model: LogRegTeamModel | LGBMTeamModel, path: Path | str) -> None
         meta_path = p.with_suffix(".meta.json")
         if model.model is not None:
             model.model.save_model(str(booster_path))
+        # Phase-4's per-(player, brawler) lookup uses tuple keys; encode as
+        # nested dict for JSON. Unencode in `load_model` symmetrically.
+        if model.featurizer is not None and model.featurizer.player_history:
+            ph = model.featurizer.player_history
+            ph_encoded = {
+                "player_stats": ph.get("player_stats", {}),
+                "player_brawler_stats_keys": [
+                    [pt, int(bid)] for (pt, bid) in ph.get("player_brawler_stats", {}).keys()
+                ],
+                "player_brawler_stats_vals": list(ph.get("player_brawler_stats", {}).values()),
+            }
+        else:
+            ph_encoded = None
         meta = {
             "type": "LGBMTeamModel",
             "cat_cols": model.cat_cols,
+            "include_team_aggregates": bool(model.include_team_aggregates),
+            "include_time_features": bool(model.include_time_features),
+            "include_history_features": bool(model.include_history_features),
             "featurizer": {
                 "brawler_to_idx": {str(k): v for k, v in model.featurizer.brawler_to_idx.items()},
                 "mode_to_idx": model.featurizer.mode_to_idx,
                 "map_to_idx": model.featurizer.map_to_idx,
                 "btype_to_idx": model.featurizer.btype_to_idx,
+                "include_team_aggregates": bool(model.featurizer.include_team_aggregates),
+                "include_time_features": bool(model.featurizer.include_time_features),
+                "include_history_features": bool(model.featurizer.include_history_features),
+                "brawler_first_seen": {
+                    str(k): v for k, v in model.featurizer.brawler_first_seen.items()
+                },
+                "player_history_encoded": ph_encoded,
             } if model.featurizer is not None else None,
         }
         with open(meta_path, "w") as f:
@@ -220,13 +285,47 @@ def load_model(path: Path | str):
             meta = json.load(f)
         if meta.get("type") == "LGBMTeamModel":
             booster = lgb.Booster(model_file=str(p.with_suffix(".lgb.txt")))
-            f = TeamFeaturizer(
-                brawler_to_idx={int(k): v for k, v in meta["featurizer"]["brawler_to_idx"].items()},
-                mode_to_idx=meta["featurizer"]["mode_to_idx"],
-                map_to_idx=meta["featurizer"]["map_to_idx"],
-                btype_to_idx=meta["featurizer"]["btype_to_idx"],
+            feat_meta = meta["featurizer"]
+            include_aggregates = bool(
+                feat_meta.get("include_team_aggregates", False)
+                or meta.get("include_team_aggregates", False)
             )
-            m = LGBMTeamModel()
+            include_time = bool(
+                feat_meta.get("include_time_features", False)
+                or meta.get("include_time_features", False)
+            )
+            include_history = bool(
+                feat_meta.get("include_history_features", False)
+                or meta.get("include_history_features", False)
+            )
+            first_seen = {
+                int(k): v for k, v in feat_meta.get("brawler_first_seen", {}).items()
+            }
+            ph_encoded = feat_meta.get("player_history_encoded")
+            player_history: dict = {"player_stats": {}, "player_brawler_stats": {}}
+            if ph_encoded is not None:
+                player_history["player_stats"] = ph_encoded.get("player_stats", {})
+                keys = ph_encoded.get("player_brawler_stats_keys", [])
+                vals = ph_encoded.get("player_brawler_stats_vals", [])
+                player_history["player_brawler_stats"] = {
+                    (str(k[0]), int(k[1])): v for k, v in zip(keys, vals)
+                }
+            f = TeamFeaturizer(
+                brawler_to_idx={int(k): v for k, v in feat_meta["brawler_to_idx"].items()},
+                mode_to_idx=feat_meta["mode_to_idx"],
+                map_to_idx=feat_meta["map_to_idx"],
+                btype_to_idx=feat_meta["btype_to_idx"],
+                include_team_aggregates=include_aggregates,
+                include_time_features=include_time,
+                include_history_features=include_history,
+                brawler_first_seen=first_seen,
+                player_history=player_history,
+            )
+            m = LGBMTeamModel(
+                include_team_aggregates=include_aggregates,
+                include_time_features=include_time,
+                include_history_features=include_history,
+            )
             m.model = booster
             m.featurizer = f
             m.cat_cols = meta["cat_cols"]

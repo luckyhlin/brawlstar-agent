@@ -28,8 +28,14 @@ models/*.onnx
 models/*.bin
 models/*.h5
 models/*.lgb.txt
+# Meta JSON pairs with the gitignored binaries; phase4 variants embed the
+# full player_history_encoded lookup (~370 MB each) — never commit.
+models/*.meta.json
 *.pkl
 *.npy
+
+# Transient DB transfer chunks (e.g. for chunked rsync to droplet); 250MB each
+tmp_db_chunks/
 
 # Logs
 logs/

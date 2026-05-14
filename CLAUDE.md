@@ -6,6 +6,37 @@
 2. Use `uv` for Python package management, not pip/conda.
 3. If `sudo apt install` is needed, flag it for the user to run manually.
 
+## Communicating commands to the user
+
+When you need the user to run a command, **present it in a form they can copy-paste directly into the shell where it should run**. Never wrap commands in extra layers the user has to mentally peel off.
+
+### Droplet (remote) commands
+
+When suggesting commands meant to run **on the production droplet**, give them as **bare commands** the user will paste after they SSH in interactively. Do NOT wrap them in `ssh brawl '...'`.
+
+- Good (user pastes after `ssh brawl`):
+
+  ```bash
+  uptime && date -Iseconds
+  df -h /; du -sh ~/brawlstar-agent/data/brawlstars.db* 2>/dev/null
+  sudo systemctl status brawl-collect.timer
+  ```
+
+- Bad (user has to peel off the SSH wrapper, can't paste into an existing droplet session):
+
+  ```bash
+  ssh brawl 'uptime && date -Iseconds'
+  ssh brawl 'df -h /; du -sh ~/brawlstar-agent/data/brawlstars.db* 2>/dev/null'
+  ```
+
+If you actually need to suggest opening the SSH connection, say it once in prose ("On the droplet (`ssh brawl`), run:") and then list the bare commands. The same convention applies to `sudo` commands on the droplet — `sudo` prompts for a password and a non-interactive `ssh "$host" "sudo ..."` can't accept it cleanly anyway (see `memory-bank/techContext.md` § "Ops convention").
+
+For commands you want to run yourself via the Shell tool, you may use `ssh brawl 'cmd'` form — that's the agent's own non-interactive ssh path and the user never sees it.
+
+### Local commands
+
+For commands meant to run on the user's local workspace machine, just give the bare command — the user is already in their local terminal.
+
 ## Python Environment
 
 ```bash

@@ -1,6 +1,8 @@
 # Brawler-pick recommender v1
 
 > Phase 6 deliverable. Companion: `notebooks/recommender_v1.ipynb` (executable, plots inline) and the `src/brawlstar_agent/recommender/` subpackage. Methodology document; results numbers will refresh on every retrain.
+>
+> **For v2 results read [`recommender-v2.md`](./recommender-v2.md)**: same model architecture but evaluated on a stable temporal test set (DEC-011) so cross-run comparisons are honest. The random-split AUC numbers in *this* document's results table are pre-DEC-011 and overstate generalization by ~2 pp; v2's table is the honest baseline to compare future work against.
 
 ## Problem statement
 

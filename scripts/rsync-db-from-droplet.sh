@@ -39,7 +39,17 @@ done
 
 REMOTE_HOST="${POSITIONAL[0]:-brawl}"
 LOCAL_PATH="${POSITIONAL[1]:-data/brawlstars.db}"
-REMOTE_DB="\$HOME/brawlstar-agent/data/brawlstars.db"
+# Relative path: resolved against the remote SSH user's $HOME by both the
+# remote shell (used in backup mode below via `ssh "$host" "sqlite3 $REMOTE_DB ..."`)
+# AND the remote rsync (used in direct mode below).
+#
+# Do NOT use a literal "$HOME" / "\$HOME" / '$HOME' here. rsync >= 3.2.4
+# enables --secluded-args by default, which sends path arguments straight
+# to the remote rsync WITHOUT shell expansion, so "$HOME" stays literal
+# and the path becomes "/home/<user>/$HOME/brawlstar-agent/...". Tilde (~)
+# would also work because rsync expands it itself, but a relative path
+# composes more cleanly with the ssh-cmd uses elsewhere in this script.
+REMOTE_DB="brawlstar-agent/data/brawlstars.db"
 
 say() { printf "[rsync-db] %s\n" "$*"; }
 
@@ -50,13 +60,13 @@ if [ "$MODE" = "direct" ]; then
     # ----- direct mode -----
     say "DIRECT mode (no .backup): rsyncing live .db file"
     say "  ⚠ Assumes timers are stopped + WAL is checkpointed"
-    say "  Verify on droplet first:"
+    say "  Verify on droplet first (ssh $REMOTE_HOST, then paste):"
     say "    sudo systemctl is-active brawl-collect.service brawl-collect-pinned.service brawl-analytics.service"
     say "    (all should be 'inactive' or 'failed', not 'active')"
-    say "    sqlite3 \$HOME/brawlstar-agent/data/brawlstars.db 'PRAGMA wal_checkpoint(TRUNCATE);'"
+    say "    sqlite3 ~/brawlstar-agent/data/brawlstars.db 'PRAGMA wal_checkpoint(TRUNCATE);'"
     say
     say "Pulling $REMOTE_HOST:$REMOTE_DB → $LOCAL_PATH"
-    rsync -avz --progress --inplace "${REMOTE_HOST}:${REMOTE_DB#\\}" "$LOCAL_PATH"
+    rsync -avz --progress --inplace "${REMOTE_HOST}:${REMOTE_DB}" "$LOCAL_PATH"
 else
     # ----- backup mode (default) -----
     SNAPSHOT="/tmp/brawl-snapshot-$(date +%Y%m%d-%H%M%S).db"
